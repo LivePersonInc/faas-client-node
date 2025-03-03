@@ -80,7 +80,13 @@ export class BaseClient {
       const domain = (baseMetrics.domain = await this.resolveDomain(
         this.config.gwCsdsServiceName
       ));
-      const response = await this.performInvocation(invocationData, domain);
+
+      const isV2 = this.isV2Domain(domain);
+
+      const response = isV2
+        ? await this.performInvocationV2(invocationData, domain)
+        : await this.performInvocationV1(invocationData, domain);
+
       const successMetric = this.enhanceBaseMetrics(baseMetrics, {
         requestDurationInMillis: watch.read(),
       });
@@ -200,7 +206,7 @@ export class BaseClient {
       }
     }
   }
-  private async performInvocation(data: Invocation, domain: string) {
+  private async performInvocationV1(data: Invocation, domain: string) {
     const invokeData = {
       method: HTTP_METHOD.POST,
       ...this.config,
@@ -248,6 +254,49 @@ export class BaseClient {
             : `: ${invokeData.lambdaUuid}"`
         }`
       );
+    }
+  }
+
+  private async performInvocationV2(data: Invocation, domain: string) {
+    const invokeData = {
+      method: HTTP_METHOD.POST,
+      ...this.config,
+      ...data,
+      requestId: this.tooling.generateId(),
+      headers: {
+        'LP-EventSource': data.externalSystem,
+      },
+    };
+
+    const path = this.isEventInvocation(data)
+      ? format(this.config.invokeEventUri, this.config.accountId, data.eventId)
+      : format(
+          this.config.invokeUuidUri,
+          this.config.accountId,
+          data.lambdaUuid
+        );
+
+    const query = {
+      userId: data?.userId,
+    };
+
+    try {
+      const url = await this.getUrl({
+        path,
+        domain,
+        query,
+        ...invokeData,
+      });
+
+      const resp = await this.doFetch({url, domain, ...invokeData});
+
+      if (this.config.returnV1compResponse) {
+        //TODO:  transform body to V1 compatibility
+      }
+      return resp;
+    } catch (error) {
+      //TODO: Handle V2 error
+      throw new Error('eew');
     }
   }
   private async performGetLambdasRequest(
@@ -352,7 +401,7 @@ export class BaseClient {
    * Base function to perform requests against the FaaS services.
    */
   protected async doFetch(options: DoFetchOptions): Promise<Response> {
-    const {url, domain, body, method, requestId} = options;
+    const {url, domain, body, method, requestId, headers} = options;
     try {
       const requestOptions = {
         url,
@@ -361,6 +410,7 @@ export class BaseClient {
           'Content-Type': 'application/json',
           'User-Agent': `${name}@${version}`,
           'X-Request-ID': requestId,
+          ...headers,
         },
         method,
       };
@@ -576,5 +626,9 @@ export class BaseClient {
   ): InvocationMetricData {
     const enhancedMetrics = Object.assign({}, baseMetrics, additionalMetrics);
     return enhancedMetrics as InvocationMetricData;
+  }
+
+  private isV2Domain(domain: string): boolean {
+    return domain.includes('fninvocations') || domain.includes('functions');
   }
 }

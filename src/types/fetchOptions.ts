@@ -12,6 +12,7 @@ export interface FetchOptions {
 
 export interface DoFetchOptions extends AuthorizationHeaderOptions {
   readonly body?: InvocationDomain;
+  readonly headers?: Record<string, string>;
   readonly requestId: string;
   readonly failOnErrorStatusCode?: boolean;
   readonly domain: string;
