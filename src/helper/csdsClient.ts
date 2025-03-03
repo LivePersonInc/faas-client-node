@@ -92,11 +92,19 @@ export class CsdsClient {
   }
 
   private getCsdsDomain(accountId: string): string {
-    if (accountId.startsWith('le') || accountId.startsWith('qa')) {
-      return 'hc1n.dev.lprnd.net';
+    if (
+      accountId.startsWith('le') ||
+      accountId.startsWith('qa') ||
+      accountId.startsWith('cc') // new QA accounts
+    ) {
+      return 'csds-app.qa.int.gw.lpcloud.io';
     }
     if (accountId.startsWith('fr')) {
       return 'adminlogin-z0-intg.liveperson.net';
+    }
+    // new alpha
+    if (accountId.startsWith('aa')) {
+      return 'adminlogin-a.liveperson.net';
     }
     // alpha/production
     return 'adminlogin.liveperson.net';
