@@ -7,14 +7,14 @@ import {Response} from '../../src/types/response';
 import nock from 'nock';
 
 const secret = 'mySecret';
-const TEST_HOST = 'test123.com';
+const TEST_V2_HOST = 'fninvocations.test124.com'; // V2 hosts starts with fninvocations and is required to trigger v2 flow
 const ACCOUNT_ID = '123456';
 
 jest.mock('../../src/helper/csdsClient', () => {
   return {
     CsdsClient: jest.fn().mockImplementation(() => {
       return {
-        get: jest.fn(() => TEST_HOST),
+        get: jest.fn(() => TEST_V2_HOST),
       };
     }),
   };
@@ -48,7 +48,7 @@ const testConfig: Required<BaseConfig> = {
   },
 };
 
-describe('Client', () => {
+describe('Client V2 flow', () => {
   beforeEach(() => {
     nock.cleanAll();
     nock.enableNetConnect();
@@ -65,22 +65,23 @@ describe('Client', () => {
     test('invoke method', async () => {
       const result1 = [123];
       const result2 = [456];
-      const scope = nock('https://test123.com')
+      const scope = nock(`https://${TEST_V2_HOST}`)
         .post(
-          '/api/account/123456/events/fooBar/invoke?v=1&skillId=&externalSystem=testSystem'
+          '/api/account/123456/events/fooBar/invoke'
         )
+
         .once()
-        .reply(200, result1)
+        .reply(202, result1)
         .persist()
         .post(
-          '/api/account/le12345/events/fooBar/invoke?v=1&skillId=&externalSystem=testSystem'
+          '/api/account/le12345/events/fooBar/invoke'
         )
         .once()
-        .reply(200, result2)
+        .reply(202, result2)
         .persist();
 
       const client1 = new Client(testConfig);
-      const response1 = client1.invoke({
+      const response1 = await client1.invoke({
         eventId: 'fooBar',
         externalSystem: 'testSystem',
         body: {
@@ -88,11 +89,11 @@ describe('Client', () => {
         },
       });
 
-      await expect(response1).resolves.toBeNonEmptyObject();
-      expect((await response1).body).toEqual(result1);
+      expect(response1).toBeNonEmptyObject();
+      expect(response1.body).toEqual(result1);
 
       const client2 = new Client({...testConfig, accountId: 'le12345'});
-      const response2 = client2.invoke({
+      const response2 = await client2.invoke({
         eventId: 'fooBar',
         externalSystem: 'testSystem',
         body: {
@@ -100,15 +101,15 @@ describe('Client', () => {
         },
       });
 
-      await expect(response2).resolves.toBeNonEmptyObject();
-      expect((await response2).body).toEqual(result2);
+      expect(response2).toBeNonEmptyObject();
+      expect(response2.body).toEqual(result2);
 
       expect(scope.isDone()).toBe(true);
     });
 
     test('getLambdas method', async () => {
       const lambda = [{uuid: 'a-b-c-d'}];
-      const scope = nock('https://test123.com')
+      const scope = nock(`https://${TEST_V2_HOST}`)
         .get(
           '/api/account/123456/lambdas/?eventId=&state=&externalSystem=testSystem&userId=&v=1'
         )
@@ -117,21 +118,20 @@ describe('Client', () => {
         .persist();
 
       const client = new Client({...testConfig, accountId: ACCOUNT_ID});
-      const response = client.getLambdas({
+      const response = await client.getLambdas({
         externalSystem: 'testSystem',
       });
-      await expect(response).resolves.toBeNonEmptyObject();
-      expect((await response).body).toEqual(lambda);
-
+      expect(response).toBeNonEmptyObject();
+      expect((response).body).toEqual(lambda);
       expect(scope.isDone()).toBe(true);
     });
 
     test('should retry on receiving a network error', async () => {
       const errorCode = {code: 'ECONNRESET'};
 
-      const scope = nock('https://test123.com')
+      const scope = nock(`https://${TEST_V2_HOST}`)
         .post(
-          '/api/account/123456/lambdas/this-is-a-uuid/invoke?v=1&skillId=&externalSystem=test-system'
+          '/api/account/123456/lambdas/this-is-a-uuid/invoke'
         )
         .times(3)
         .replyWithError(errorCode);
@@ -153,9 +153,9 @@ describe('Client', () => {
 
   describe('Unhappy flows', () => {
     test('should throw if Functions returns a none-okay status code', async () => {
-      const scope = nock('https://test123.com')
+      const scope = nock(`https://${TEST_V2_HOST}`)
         .post(
-          '/api/account/123456/lambdas/this-is-a-uuid/invoke?v=1&skillId=&externalSystem=test-system'
+          '/api/account/123456/lambdas/this-is-a-uuid/invoke'
         )
         .times(3)
         .reply(502)
@@ -182,9 +182,9 @@ describe('Client', () => {
     test('should throw if network errors are raised continuously', async () => {
       const errorCode = {code: 'ECONNRESET'};
 
-      const scope = nock('https://test123.com')
+      const scope = nock(`https://${TEST_V2_HOST}`)
         .post(
-          '/api/account/123456/lambdas/this-is-a-uuid/invoke?v=1&skillId=&externalSystem=test-system'
+          '/api/account/123456/lambdas/this-is-a-uuid/invoke'
         )
         .times(3)
         .replyWithError(errorCode);

@@ -3,7 +3,6 @@ export interface BaseQuery {
   readonly externalSystem: string;
   readonly skillId?: string;
 }
-
 export interface GetLambdasQuery extends Partial<BaseQuery> {
   readonly eventId?: string;
   readonly state?: string | string[];

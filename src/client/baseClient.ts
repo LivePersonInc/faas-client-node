@@ -276,9 +276,7 @@ export class BaseClient {
           data.lambdaUuid
         );
 
-    const query = {
-      userId: data?.userId,
-    };
+    const query = data.skillId !== undefined ? {skillId: data.skillId} : {};
 
     try {
       const url = await this.getUrl({
