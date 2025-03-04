@@ -1,4 +1,4 @@
-/*import {AppJwtCredentials} from './../../src/types/appJwtCredentials';
+import {AppJwtCredentials} from './../../src/types/appJwtCredentials';
 import {Client} from '../../src/client/client';
 import {GetAuthorizationHeader} from '../../src/client/clientConfig';
 import {createHmac} from 'crypto';
@@ -146,4 +146,3 @@ describe('Invoke by event id', () => {
     expect(response.body).toEqual([]);
   });
 });
-*/
