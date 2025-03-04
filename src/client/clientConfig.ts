@@ -36,11 +36,6 @@ export interface DefaultConfig {
   readonly jwtRefreshAfterMinutes?: number;
 
   readonly isImplementedCacheDurationInSeconds?: number;
-  /**
-   * Will convert V2 responses to V1 format to allow an smooth transition
-   * NOTE: This option will not be supported in future updates
-   */
-  readonly returnV1compResponse?: boolean;
 }
 
 export interface DebugConfig {
@@ -110,5 +105,4 @@ export const defaultConfig: Required<DefaultConfig> = {
   csdsTtlSeconds: 600,
   jwtRefreshAfterMinutes: 30,
   isImplementedCacheDurationInSeconds: 60,
-  returnV1compResponse: false,
 };

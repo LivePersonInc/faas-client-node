@@ -290,13 +290,24 @@ export class BaseClient {
 
       const resp = await this.doFetch({url, domain, ...invokeData});
 
-      if (this.config.returnV1compResponse) {
-        //TODO:  transform body to V1 compatibility
-      }
       return resp;
     } catch (error) {
-      //TODO: Handle V2 error
-      throw new Error('eew');
+      throw new VError(
+        {
+          cause: error as Error,
+          info: {
+            ...this.getDebugConfig(),
+          },
+          name: this.isCustomLambdaError((error as VError).cause())
+            ? 'FaaSLambdaError'
+            : 'FaaSInvokeError',
+        },
+        `Failed to invoke lambda ${
+          this.isEventInvocation(invokeData)
+            ? `for event: "${invokeData.eventId}"`
+            : `: ${invokeData.lambdaUuid}"`
+        }`
+      );
     }
   }
   private async performGetLambdasRequest(
