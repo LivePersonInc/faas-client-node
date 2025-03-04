@@ -10,7 +10,7 @@ export interface GetLambdasQuery extends Partial<BaseQuery> {
 }
 export interface GetFunctionsQuery {
   readonly userId?: string;
-  readonly state?: State[];
+  readonly state?: string[];
   readonly eventId?: string;
   readonly functionName?: string;
 }
