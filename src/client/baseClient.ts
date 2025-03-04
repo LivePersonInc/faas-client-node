@@ -244,7 +244,7 @@ export class BaseClient {
           info: {
             ...this.getDebugConfig(),
           },
-          name: this.isCustomLambdaError((error as VError).cause())
+          name: this.isCustomLambdaErrorV1((error as VError).cause())
             ? 'FaaSLambdaError'
             : 'FaaSInvokeError',
         },
@@ -298,7 +298,7 @@ export class BaseClient {
           info: {
             ...this.getDebugConfig(),
           },
-          name: this.isCustomLambdaError((error as VError).cause())
+          name: this.isCustomLambdaErrorV2((error as VError).cause())
             ? 'FaaSLambdaError'
             : 'FaaSInvokeError',
         },
@@ -521,7 +521,7 @@ export class BaseClient {
     };
   }
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  protected isCustomLambdaError(error: any): boolean {
+  protected isCustomLambdaErrorV1(error: any): boolean {
     if (error && error.name === 'HttpRequestError') {
       const isDetailedError = error.jse_info?.response?.body?.errorCode;
 
@@ -529,6 +529,24 @@ export class BaseClient {
         isDetailedError &&
         error.jse_info.response.body.errorCode.startsWith(
           'com.liveperson.faas.handler'
+        )
+      ) {
+        return true;
+      }
+    }
+
+    return false;
+  }
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  protected isCustomLambdaErrorV2(error: any): boolean {
+    if (error && error.name === 'HttpRequestError') {
+      const isDetailedError = error.jse_info?.response?.body?.code;
+
+      if (
+        isDetailedError &&
+        error.jse_info.response.body.code.startsWith(
+          'com.customer.faas.function.threw-error'
         )
       ) {
         return true;
