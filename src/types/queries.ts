@@ -1,5 +1,3 @@
-import {State} from './invocationTypes';
-
 export interface BaseQuery {
   readonly v: string;
   readonly externalSystem: string;
