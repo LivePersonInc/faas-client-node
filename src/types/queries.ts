@@ -1,3 +1,5 @@
+import {State} from './invocationTypes';
+
 export interface BaseQuery {
   readonly v: string;
   readonly externalSystem: string;
@@ -7,4 +9,10 @@ export interface GetLambdasQuery extends Partial<BaseQuery> {
   readonly eventId?: string;
   readonly state?: string | string[];
   readonly userId?: string;
+}
+export interface GetFunctionsQuery {
+  readonly userId?: string;
+  readonly state?: State[];
+  readonly eventId?: string;
+  readonly functionName?: string;
 }

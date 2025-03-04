@@ -25,12 +25,21 @@ export interface FilterLambdas extends Partial<EventRequest> {
   readonly state?: string | string[];
   readonly name?: string;
 }
+export interface FilterFunctions extends Partial<EventRequest> {
+  readonly state?: string[];
+  readonly functionName?: string;
+}
 
 export type Invocation = EventInvocation | UuidInvocation;
 
 export type IsImplemented = BaseInvocation & EventRequest;
 
+/**
+ * @deprecated
+ */
 export type LambdaRequest = FilterLambdas & Partial<BaseInvocation>;
+
+export type FunctionRequest = FilterFunctions & Partial<BaseInvocation>;
 
 export type EventInvocation = BasePostInvocation & EventRequest;
 

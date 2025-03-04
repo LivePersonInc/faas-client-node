@@ -22,6 +22,10 @@ export interface DefaultConfig {
   readonly apiVersion?: string;
   readonly timeout?: number;
   readonly protocol?: typeof PROTOCOL[keyof typeof PROTOCOL];
+  /**
+   * Equivalent to getLambdasUri for V2 Functions
+   */
+  readonly getFunctionsUri?: string;
   readonly getLambdasUri?: string;
   readonly invokeUuidUri?: string;
   readonly invokeEventUri?: string;
@@ -97,6 +101,7 @@ export const defaultConfig: Required<DefaultConfig> = {
   timeout: 35000, // ms
   protocol: PROTOCOL.HTTPS,
   getLambdasUri: 'api/account/%s/lambdas/',
+  getFunctionsUri: 'api/account/%s/functions',
   invokeUuidUri: 'api/account/%s/lambdas/%s/invoke',
   invokeEventUri: 'api/account/%s/events/%s/invoke',
   isImplementedUri: 'api/account/%s/events/%s/isImplemented',

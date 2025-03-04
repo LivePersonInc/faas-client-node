@@ -18,8 +18,9 @@ import {
   EventInvocation,
   LambdaRequest,
   IsImplemented,
+  FunctionRequest,
 } from '../types/invocationTypes';
-import {BaseQuery, GetLambdasQuery} from '../types/queries';
+import {BaseQuery, GetFunctionsQuery, GetLambdasQuery} from '../types/queries';
 import {ImplementedEvent} from '../helper/isImplementedCache';
 import {DoFetchOptions} from '../types/fetchOptions';
 import {AppJwtAuthentication} from '../helper/appJwtAuthentication';
@@ -112,8 +113,8 @@ export class BaseClient {
    *
    * @param lambdaRequestData filtering data
    * @returns A list of functions.
+   * @deprecated Although still compatible with V2 Functions using 'getFunctions' is recommended
    */
-
   async getLambdas(lambdaRequestData: LambdaRequest): Promise<Response> {
     const baseMetrics = this.collectBaseMetricsFrom(lambdaRequestData);
     const watch = new stopwatch();
@@ -122,10 +123,23 @@ export class BaseClient {
       const domain = (baseMetrics.domain = await this.resolveDomain(
         this.config.uiCsdsServiceName
       ));
-      const resp = await this.performGetLambdasRequest(
-        lambdaRequestData,
-        domain
-      );
+
+      const isV2 = this.isV2Domain(domain);
+
+      const resp = isV2
+        ? await this.performGetFunctionsRequest(
+            {
+              state:
+                typeof lambdaRequestData.state === 'string'
+                  ? [lambdaRequestData.state]
+                  : lambdaRequestData.state,
+              skillId: lambdaRequestData.skillId,
+              eventId: lambdaRequestData.eventId,
+            },
+            domain
+          )
+        : await this.performGetLambdasRequest(lambdaRequestData, domain);
+
       const successMetric = this.enhanceBaseMetrics(baseMetrics, {
         requestDurationInMillis: watch.read(),
       });
@@ -135,6 +149,7 @@ export class BaseClient {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const statusCode = ((error as VError)?.cause as any)?.jse_cause?.jse_info
         ?.response;
+      // TODO: Transform response in case is V2
       const failureMetric = this.enhanceBaseMetrics(baseMetrics, {
         requestDurationInMillis: watch.read(),
         statusCode,
@@ -343,6 +358,49 @@ export class BaseClient {
             ...this.getDebugConfig(),
           },
           name: 'FaaSGetLambdasError',
+        },
+        `Failed to get functions from account Id "${requestData.accountId}".`
+      );
+    }
+  }
+
+  /**
+   *  Equivalent to performGetLambdasRequest for V2
+   */
+  private async performGetFunctionsRequest(
+    data: FunctionRequest,
+    domain: string
+  ): Promise<Response> {
+    const requestData = {
+      method: HTTP_METHOD.GET,
+      ...this.config,
+      ...data,
+      requestId: this.tooling.generateId(),
+    };
+    const path = format(requestData.getLambdasUri, requestData.accountId);
+    const query: GetFunctionsQuery = {
+      eventId: requestData.eventId,
+      state: data.state,
+      userId: data.userId,
+      functionName: data.functionName,
+    };
+    try {
+      const url = await this.getUrl({
+        path,
+        domain,
+        query,
+        ...requestData,
+      });
+      const resp = await this.doFetch({url, domain, ...requestData});
+      return resp;
+    } catch (error) {
+      throw new VError(
+        {
+          cause: error as Error,
+          info: {
+            ...this.getDebugConfig(),
+          },
+          name: 'FaaSGetFunctionsError',
         },
         `Failed to get functions from account Id "${requestData.accountId}".`
       );

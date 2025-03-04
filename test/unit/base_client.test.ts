@@ -11,7 +11,7 @@ const defaultTestConfig: Required<DefaultConfig> = {
   gwCsdsServiceName: 'faasGW',
   uiCsdsServiceName: 'faasUI',
   apiVersion: '1',
-  timeout: 10_000, // ms
+  timeout: 10000, // ms
   protocol: PROTOCOL.HTTPS,
   getLambdasUri: 'api/account/%s/lambdas/',
   invokeUuidUri: 'api/account/%s/lambdas/%s/invoke',
@@ -22,6 +22,7 @@ const defaultTestConfig: Required<DefaultConfig> = {
   csdsTtlSeconds: 600,
   jwtRefreshAfterMinutes: 30,
   isImplementedCacheDurationInSeconds: 60,
+  getFunctionsUri: 'api/account/%s/functions',
 };
 
 const testBaseConfig: Required<BaseConfig> = {
