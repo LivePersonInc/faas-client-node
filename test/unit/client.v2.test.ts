@@ -111,7 +111,7 @@ describe('Client V2 flow', () => {
       const lambda = [{uuid: 'a-b-c-d'}];
       const scope = nock(`https://${TEST_V2_HOST}`)
         .get(
-          '/api/account/123456/lambdas/?eventId=&state=&externalSystem=testSystem&userId=&v=1'
+          '/api/account/123456/lambdas/?eventId=&state=&userId=&functionName='
         )
         .once()
         .reply(200, lambda)
