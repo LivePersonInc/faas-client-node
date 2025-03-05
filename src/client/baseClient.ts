@@ -163,6 +163,42 @@ export class BaseClient {
     }
   }
 
+  async getFunctions(functionRequestData: FunctionRequest): Promise<Response> {
+    const baseMetrics = this.collectBaseMetricsFrom(functionRequestData); // FIXME
+    const watch = new stopwatch();
+    watch.start();
+    try {
+      const domain = (baseMetrics.domain = await this.resolveDomain(
+        this.config.uiCsdsServiceName
+      ));
+      const resp = await this.performGetFunctionsRequest(
+        functionRequestData,
+        domain
+      );
+
+      const successMetric = this.enhanceBaseMetrics(baseMetrics, {
+        requestDurationInMillis: watch.read(),
+      });
+      this.tooling.metricCollector?.onGetLambdas(successMetric);
+      return resp;
+    } catch (error) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const statusCode = ((error as VError)?.cause as any)?.jse_cause?.jse_info
+        ?.response;
+      // TODO: Transform response in case is V2
+      const failureMetric = this.enhanceBaseMetrics(baseMetrics, {
+        requestDurationInMillis: watch.read(),
+        statusCode,
+        error,
+      });
+
+      this.tooling.metricCollector?.onGetLambdas(failureMetric);
+      throw error;
+    } finally {
+      watch.stop();
+    }
+  }
+
   /**
    * Checks if an Event(ID) is implemented.
    */
@@ -377,10 +413,10 @@ export class BaseClient {
       ...data,
       requestId: this.tooling.generateId(),
     };
-    const path = format(requestData.getLambdasUri, requestData.accountId);
+    const path = format(requestData.getFunctionsUri, requestData.accountId);
     const query: GetFunctionsQuery = {
       eventId: requestData.eventId,
-      state: data.state,
+      state: data.state === undefined ? [] : data.state,
       userId: data.userId,
       functionName: data.functionName,
     };
@@ -391,6 +427,7 @@ export class BaseClient {
         query,
         ...requestData,
       });
+
       const resp = await this.doFetch({url, domain, ...requestData});
       return resp;
     } catch (error) {
@@ -673,7 +710,7 @@ export class BaseClient {
   }
 
   private collectBaseMetricsFrom(
-    data: LambdaRequest | IsImplemented
+    data: LambdaRequest | FunctionRequest | IsImplemented
   ): Record<string, unknown> {
     return {
       accountId: this.config.accountId,
