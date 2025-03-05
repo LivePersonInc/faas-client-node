@@ -65,17 +65,20 @@ describe('Client V2 flow', () => {
     test('invoke method', async () => {
       const result1 = [123];
       const result2 = [456];
-      const scope = nock(`https://${TEST_V2_HOST}`)
-        .post(
-          '/api/account/123456/events/fooBar/invoke'
-        )
-
+      const scope = nock(`https://${TEST_V2_HOST}`, {
+        reqheaders: {
+          'Content-Type': 'application/json',
+          'User-Agent': value => true,
+          'X-Request-ID': value => true,
+           Authorization: value => true,
+          'LP-EventSource': 'testSystem',
+        },
+      })
+        .post('/api/account/123456/events/fooBar/invoke')
         .once()
         .reply(202, result1)
         .persist()
-        .post(
-          '/api/account/le12345/events/fooBar/invoke'
-        )
+        .post('/api/account/le12345/events/fooBar/invoke')
         .once()
         .reply(202, result2)
         .persist();
@@ -83,7 +86,7 @@ describe('Client V2 flow', () => {
       const client1 = new Client(testConfig);
       const response1 = await client1.invoke({
         eventId: 'fooBar',
-        externalSystem: 'testSystem',
+        lpEventSource: 'testSystem',
         body: {
           payload: {},
         },
@@ -107,14 +110,12 @@ describe('Client V2 flow', () => {
       expect(scope.isDone()).toBe(true);
     });
 
-    test('getLambdas method', async () => {
-      const lambda = [{uuid: 'a-b-c-d'}];
+    test('getLambdas deprecated method to get V2 functions', async () => {
+      const lambdas = [{uuid: 'a-b-c-d'}];
       const scope = nock(`https://${TEST_V2_HOST}`)
-        .get(
-          '/api/account/123456/lambdas/?eventId=&state=&userId=&functionName='
-        )
+        .get('/api/account/123456/functions?eventId=&userId=&functionName=')
         .once()
-        .reply(200, lambda)
+        .reply(200, lambdas)
         .persist();
 
       const client = new Client({...testConfig, accountId: ACCOUNT_ID});
@@ -122,7 +123,24 @@ describe('Client V2 flow', () => {
         externalSystem: 'testSystem',
       });
       expect(response).toBeNonEmptyObject();
-      expect((response).body).toEqual(lambda);
+      expect(response.body).toEqual(lambdas);
+      expect(scope.isDone()).toBe(true);
+    });
+
+    test('getFunctions', async () => {
+      const lambdas = [{uuid: 'a-b-c-d'}];
+      const scope = nock(`https://${TEST_V2_HOST}`)
+        .get('/api/account/123456/functions?eventId=&userId=&functionName=')
+        .once()
+        .reply(200, lambdas)
+        .persist();
+
+      const client = new Client({...testConfig, accountId: ACCOUNT_ID});
+      const response = await client.getFunctions({
+        externalSystem: 'testSystem',
+      });
+      expect(response).toBeNonEmptyObject();
+      expect(response.body).toEqual(lambdas);
       expect(scope.isDone()).toBe(true);
     });
 
@@ -130,9 +148,7 @@ describe('Client V2 flow', () => {
       const errorCode = {code: 'ECONNRESET'};
 
       const scope = nock(`https://${TEST_V2_HOST}`)
-        .post(
-          '/api/account/123456/lambdas/this-is-a-uuid/invoke'
-        )
+        .post('/api/account/123456/lambdas/this-is-a-uuid/invoke')
         .times(3)
         .replyWithError(errorCode);
 
@@ -154,9 +170,7 @@ describe('Client V2 flow', () => {
   describe('Unhappy flows', () => {
     test('should throw if Functions returns a none-okay status code', async () => {
       const scope = nock(`https://${TEST_V2_HOST}`)
-        .post(
-          '/api/account/123456/lambdas/this-is-a-uuid/invoke'
-        )
+        .post('/api/account/123456/lambdas/this-is-a-uuid/invoke')
         .times(3)
         .reply(502)
         .persist();
@@ -183,9 +197,7 @@ describe('Client V2 flow', () => {
       const errorCode = {code: 'ECONNRESET'};
 
       const scope = nock(`https://${TEST_V2_HOST}`)
-        .post(
-          '/api/account/123456/lambdas/this-is-a-uuid/invoke'
-        )
+        .post('/api/account/123456/lambdas/this-is-a-uuid/invoke')
         .times(3)
         .replyWithError(errorCode);
       const config: Config = {...testConfig, failOnErrorStatusCode: true};

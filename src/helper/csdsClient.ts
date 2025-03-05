@@ -95,7 +95,7 @@ export class CsdsClient {
     if (
       accountId.startsWith('le') ||
       accountId.startsWith('qa') ||
-      accountId.startsWith('cc') // new QA accounts
+      accountId.startsWith('c') // new QA accounts
     ) {
       return 'csds-app.qa.int.gw.lpcloud.io';
     }
@@ -103,7 +103,7 @@ export class CsdsClient {
       return 'adminlogin-z0-intg.liveperson.net';
     }
     // new alpha
-    if (accountId.startsWith('aa')) {
+    if (accountId.startsWith('a')) {
       return 'adminlogin-a.liveperson.net';
     }
     // alpha/production

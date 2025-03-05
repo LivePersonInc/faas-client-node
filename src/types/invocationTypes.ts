@@ -4,7 +4,14 @@ import {BaseConfig} from '../client/clientConfig';
 
 export interface BaseInvocation extends Partial<BaseConfig> {
   readonly method?: typeof HTTP_METHOD[keyof typeof HTTP_METHOD];
-  readonly externalSystem: string;
+  readonly lpEventSource?: string;
+  /**
+   * @deprecated will be replaced by lpEventSource
+   */
+  readonly externalSystem?: string;
+  /**
+   * @deprecated
+   */
   readonly apiVersion?: string;
   readonly userId?: string;
   readonly skillId?: string;

@@ -276,7 +276,7 @@ export class BaseClient {
     const query: BaseQuery = {
       v: invokeData.apiVersion,
       skillId: data?.skillId,
-      externalSystem: invokeData.externalSystem,
+      externalSystem: invokeData.externalSystem || 'unknown',
     };
     try {
       const url = await this.getUrl({
@@ -315,7 +315,8 @@ export class BaseClient {
       ...data,
       requestId: this.tooling.generateId(),
       headers: {
-        'LP-EventSource': data.externalSystem,
+        'LP-EventSource':
+          data.lpEventSource || data.externalSystem || 'Unknown',
       },
     };
 
@@ -463,7 +464,7 @@ export class BaseClient {
       const query: BaseQuery = {
         v: isImplementedData.apiVersion,
         skillId: isImplementedData.skillId,
-        externalSystem: isImplementedData.externalSystem,
+        externalSystem: isImplementedData.externalSystem || 'Unknown',
       };
       const url = await this.getUrl({
         path,
