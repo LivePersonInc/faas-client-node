@@ -62,18 +62,28 @@ describe('Client V1 flow', () => {
       expect(client).toBeInstanceOf(BaseClient);
     });
 
+    
     test('invoke method', async () => {
+      const lpEventSource = 'testSystem';
+      const externalSystem = 'testSystem2';
+
       const result1 = [123];
       const result2 = [456];
-      const scope = nock('https://test123.com')
+      const scope = nock('https://test123.com', {
+        reqheaders: {
+          'Content-Type': 'application/json',
+          'X-Request-ID': value => true,
+          Authorization: value => true,
+        },
+      })
         .post(
-          '/api/account/123456/events/fooBar/invoke?v=1&skillId=&externalSystem=testSystem'
+          `/api/account/123456/events/fooBar/invoke?v=1&skillId=&externalSystem=${lpEventSource}`
         )
         .once()
         .reply(200, result1)
         .persist()
         .post(
-          '/api/account/le12345/events/fooBar/invoke?v=1&skillId=&externalSystem=testSystem'
+          `/api/account/le12345/events/fooBar/invoke?v=1&skillId=&externalSystem=${externalSystem}`
         )
         .once()
         .reply(200, result2)
@@ -82,7 +92,7 @@ describe('Client V1 flow', () => {
       const client1 = new Client(testConfig);
       const response1 = client1.invoke({
         eventId: 'fooBar',
-        externalSystem: 'testSystem',
+        lpEventSource,
         body: {
           payload: {},
         },
@@ -94,7 +104,7 @@ describe('Client V1 flow', () => {
       const client2 = new Client({...testConfig, accountId: 'le12345'});
       const response2 = client2.invoke({
         eventId: 'fooBar',
-        externalSystem: 'testSystem',
+        externalSystem,
         body: {
           payload: {},
         },

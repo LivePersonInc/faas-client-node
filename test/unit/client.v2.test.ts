@@ -63,6 +63,7 @@ describe('Client V2 flow', () => {
     });
 
     test('invoke method', async () => {
+      const lpEventSource = 'testSystem';
       const result1 = [123];
       const result2 = [456];
       const scope = nock(`https://${TEST_V2_HOST}`, {
@@ -70,8 +71,8 @@ describe('Client V2 flow', () => {
           'Content-Type': 'application/json',
           'User-Agent': value => true,
           'X-Request-ID': value => true,
-           Authorization: value => true,
-          'LP-EventSource': 'testSystem',
+          Authorization: value => true,
+          'LP-EventSource': lpEventSource,
         },
       })
         .post('/api/account/123456/events/fooBar/invoke')
@@ -86,7 +87,7 @@ describe('Client V2 flow', () => {
       const client1 = new Client(testConfig);
       const response1 = await client1.invoke({
         eventId: 'fooBar',
-        lpEventSource: 'testSystem',
+        lpEventSource,
         body: {
           payload: {},
         },

@@ -276,7 +276,8 @@ export class BaseClient {
     const query: BaseQuery = {
       v: invokeData.apiVersion,
       skillId: data?.skillId,
-      externalSystem: invokeData.externalSystem || 'unknown',
+      externalSystem:
+        invokeData.lpEventSource || invokeData.externalSystem || 'unknown',
     };
     try {
       const url = await this.getUrl({
