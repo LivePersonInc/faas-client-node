@@ -5,6 +5,11 @@ import {CsdsClient} from '../../src/helper/csdsClient';
 import {BaseConfig, Config} from '../../src/client/clientConfig';
 import {Response} from '../../src/types/response';
 import nock from 'nock';
+import {
+  InvocationMetricData,
+  MetricCollector,
+} from '../../src/helper/metricCollector';
+import {Tooling} from '../../src/types/tooling';
 
 const secret = 'mySecret';
 const TEST_HOST = 'test123.com';
@@ -62,7 +67,6 @@ describe('Client V1 flow', () => {
       expect(client).toBeInstanceOf(BaseClient);
     });
 
-    
     test('invoke method', async () => {
       const lpEventSource = 'testSystem';
       const externalSystem = 'testSystem2';
@@ -99,7 +103,7 @@ describe('Client V1 flow', () => {
       });
 
       await expect(response1).resolves.toBeNonEmptyObject();
-     expect((await ( response1)).body).toEqual(result1);
+      expect((await response1).body).toEqual(result1);
 
       const client2 = new Client({...testConfig, accountId: 'le12345'});
       const response2 = client2.invoke({
@@ -157,6 +161,88 @@ describe('Client V1 flow', () => {
       });
 
       expect(response.retryCount).toEqual(3);
+      expect(scope.isDone()).toBe(true);
+    });
+
+    test('invocation metrics', async () => {
+      const lpEventSource = 'testSystem';
+      let onInvokeCalled = false;
+      class MyMetricCollector implements MetricCollector {
+        onInvoke(invocationData: InvocationMetricData): void {
+          expect(invocationData.lpEventSource).toEqual(lpEventSource);
+          expect(invocationData.externalSystem).toBeUndefined();
+          onInvokeCalled = true;
+          return;
+        }
+        onGetLambdas(invocationData: InvocationMetricData): void {
+          return;
+        }
+        onIsImplemented(invocationData: InvocationMetricData): void {
+          return;
+        }
+      }
+      const result1 = [123];
+      const scope = nock('https://test123.com')
+        .post(
+          `/api/account/123456/events/fooBar/invoke?v=1&skillId=&externalSystem=${lpEventSource}`
+        )
+        .once()
+        .reply(202, result1)
+        .persist();
+
+      const client1 = new Client(testConfig, {
+        metricCollector: new MyMetricCollector(),
+      } as Tooling);
+      await client1.invoke({
+        eventId: 'fooBar',
+        lpEventSource,
+        body: {
+          payload: {},
+        },
+      });
+
+      expect(onInvokeCalled).toBe(true);
+      expect(scope.isDone()).toBe(true);
+    });
+
+    test('invocation metrics should contain deprecated externalSystem', async () => {
+      const lpEventSource = 'testSystem';
+      let onInvokeCalled = false;
+      class MyMetricCollector implements MetricCollector {
+        onInvoke(invocationData: InvocationMetricData): void {
+          expect(invocationData.lpEventSource).toEqual(lpEventSource);
+          expect(invocationData.externalSystem).toEqual(lpEventSource);
+          onInvokeCalled = true;
+          return;
+        }
+        onGetLambdas(invocationData: InvocationMetricData): void {
+          return;
+        }
+        onIsImplemented(invocationData: InvocationMetricData): void {
+          return;
+        }
+      }
+      const result1 = [123];
+      const scope = nock('https://test123.com')
+        .post(
+          `/api/account/123456/events/fooBar/invoke?v=1&skillId=&externalSystem=${lpEventSource}`
+        )
+        .once()
+        .reply(202, result1)
+        .persist();
+
+      const client1 = new Client(testConfig, {
+        metricCollector: new MyMetricCollector(),
+      } as Tooling);
+      await client1.invoke({
+        eventId: 'fooBar',
+        externalSystem: lpEventSource, // We pass deprecated externalSystem prop
+        body: {
+          payload: {},
+        },
+      });
+
+      expect(onInvokeCalled).toBe(true);
       expect(scope.isDone()).toBe(true);
     });
   });
