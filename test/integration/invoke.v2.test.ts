@@ -1,5 +1,10 @@
 import {AppJwtCredentials} from './../../src/types/appJwtCredentials';
 import {Client} from '../../src/client/client';
+import {
+  InvocationMetricData,
+  MetricCollector,
+} from '../../src/helper/metricCollector';
+import {Tooling} from '../../src/types/tooling';
 
 const successLambdaUUID =
   process.env['SUCCESS_LAMBDA_UUID'] || 'does-not-exist';
@@ -13,20 +18,50 @@ const appJwtCredentials: AppJwtCredentials = {
   clientId,
   clientSecret,
 };
+
 describe('V2 Invoke by UUID', () => {
   it('should invoke and get result via AppJwt', async () => {
-    const client = new Client({
-      accountId,
-      authStrategy: appJwtCredentials,
-      failOnErrorStatusCode: true,
-    });
+    const lpEventSource = 'integration-tests';
+    let onInvokeCalled = false;
+    let onIsImplementedCalled = false;
+    class MyMetricCollector implements MetricCollector {
+      onInvoke(invocationData: InvocationMetricData): void {
+        expect(invocationData.lpEventSource).toEqual(lpEventSource);
+        expect(invocationData.externalSystem).toBeUndefined();
+        onInvokeCalled = true;
+        return;
+      }
+      onGetLambdas(invocationData: InvocationMetricData): void {
+        return;
+      }
+      onIsImplemented(invocationData: InvocationMetricData): void {
+        onIsImplementedCalled = true;
+        return;
+      }
+    }
+
+    const client = new Client(
+      {
+        accountId,
+        authStrategy: appJwtCredentials,
+        failOnErrorStatusCode: true,
+      },
+      {
+        metricCollector: new MyMetricCollector(),
+      } as Tooling
+    );
     const payload = {
       foo: 'bar',
     };
 
+    const isImplemented = await client.isImplemented({
+      eventId: 'conversational_command',
+      lpEventSource: 'integration-tests',
+    });
+
     const response = await client.invoke({
       lambdaUuid: successLambdaUUID,
-      externalSystem: 'integration-tests',
+      lpEventSource: 'integration-tests',
       body: {
         headers: [],
         payload,
@@ -34,8 +69,11 @@ describe('V2 Invoke by UUID', () => {
     });
 
     expect(response.ok).toEqual(true);
+    expect(onInvokeCalled).toEqual(true);
+    expect(isImplemented).toEqual(true);
+    expect(onIsImplementedCalled).toEqual(true);
   });
-
+  
   it('should fail if lambda returns 901 error', async () => {
     const client = new Client({
       accountId,
@@ -114,5 +152,4 @@ describe('V2 Invoke by event id', () => {
 
     expect(response.ok).toEqual(true);
   });
-
 });
