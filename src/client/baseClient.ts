@@ -227,10 +227,19 @@ export class BaseClient {
         const domain = (baseMetrics.domain = await this.resolveDomain(
           this.config.gwCsdsServiceName
         ));
-        const implemented = await this.performGetRequestForIsImplemented(
-          isImplementedRequestData,
-          domain
-        );
+
+        const isV2 = this.isV2Domain(domain);
+
+        const implemented = isV2
+          ? await this.performGetRequestForIsImplementedV2(
+              isImplementedRequestData,
+              domain
+            )
+          : await this.performGetRequestForIsImplemented(
+              isImplementedRequestData,
+              domain
+            );
+
         const successMetric = this.enhanceBaseMetrics(baseMetrics, {
           requestDurationInMillis: watch.read(),
         });
@@ -503,6 +512,64 @@ export class BaseClient {
     }
   }
 
+  private async performGetRequestForIsImplementedV2(
+    data: IsImplemented,
+    domain: string
+  ): Promise<boolean> {
+    const isImplementedData = {
+      method: HTTP_METHOD.GET,
+      ...this.config,
+      ...data,
+      requestId: this.tooling.generateId(),
+    };
+    try {
+      const path = format(
+        isImplementedData.isImplementedUri,
+        isImplementedData.accountId,
+        isImplementedData.eventId
+      );
+      const query =
+        isImplementedData.userId !== undefined
+          ? {
+              userId: isImplementedData.userId,
+            }
+          : {};
+      const url = await this.getUrl({
+        path,
+        domain,
+        query,
+        ...isImplementedData,
+      });
+      const {
+        body: {implemented},
+      }: Response = await this.doFetch({
+        url,
+        domain,
+        ...isImplementedData,
+      });
+      if (implemented === undefined) {
+        throw new VError(
+          {
+            name: 'FaasIsImplementedParseError',
+          },
+          'Response could not be parsed'
+        );
+      }
+      return implemented as boolean;
+    } catch (error) {
+      throw new VError(
+        {
+          cause: error as Error,
+          info: {
+            ...this.getDebugConfig(),
+          },
+          name: 'FaaSIsImplementedError',
+        },
+        `Failed to check if event "${data.eventId}" is implemented.`
+      );
+    }
+  }
+
   /**
    * Base function to perform requests against the FaaS services.
    */
@@ -718,7 +785,11 @@ export class BaseClient {
       accountId: this.config.accountId,
       domain: 'unresolved',
       fromCache: false,
+      /**
+       * @deprecated Use lpEventSource instead
+       */
       externalSystem: data?.externalSystem,
+      lpEventSource: data?.lpEventSource || data?.externalSystem,
       skillId: data?.skillId,
     };
   }
@@ -730,7 +801,11 @@ export class BaseClient {
       accountId: this.config.accountId,
       domain: 'unresolved',
       fromCache: false,
-      externalSystem: data.externalSystem,
+      /**
+       * @deprecated Use lpEventSource instead
+       */
+      externalSystem: data?.externalSystem,
+      lpEventSource: data?.lpEventSource || data?.externalSystem,
     };
     return this.isEventInvocation(data)
       ? {

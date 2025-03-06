@@ -30,6 +30,7 @@ export interface DefaultConfig {
   readonly invokeUuidUri?: string;
   readonly invokeEventUri?: string;
   readonly isImplementedUri?: string;
+
   readonly failOnErrorStatusCode?: boolean;
   /** Optional HTTP request headers that should be included in CSDS requests. */
   readonly csdsHttpHeaders?: {[key: string]: unknown};
