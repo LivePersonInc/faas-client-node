@@ -1,4 +1,3 @@
-import {AppJwtCredentials} from '../../src/types/appJwtCredentials';
 import {Client} from '../../src/client/client';
 import {GetAuthorizationHeader} from '../../src/client/clientConfig';
 
