@@ -277,6 +277,40 @@ describe('Client V2 flow', () => {
         expect(scope.isDone()).toBe(true);
       }
     });
+
+    test('should map V2 errors code to V1 error', async () => {
+      const scope = nock(`https://${TEST_V2_HOST}`)
+        .post('/api/account/123456/lambdas/this-is-a-uuid/invoke')
+        .times(3)
+        .reply(901, {
+          code: "com.customer.faas.function.threw-error",
+          message: "something wrong"
+        })
+        .persist();
+      const config: Config = {...testConfig, failOnErrorStatusCode: true};
+      const client = new Client(config);
+
+      try {
+        await client.invoke({
+          lambdaUuid: 'this-is-a-uuid',
+          externalSystem: 'test-system',
+          v1CompError: true,
+          body: {
+            payload: {},
+          },
+        });
+      } catch (error) {
+        expect(error).toMatchObject({
+          name: 'FaaSInvokeError',
+          message: expect.stringContaining('901'),
+        });
+        expect((error as any)?.jse_cause?.jse_cause?.jse_info?.response?.body).toMatchObject({
+          errorCode: 'com.liveperson.faas.handler.custom-failure',
+          errorMsg: "something wrong",
+        });
+        expect(scope.isDone()).toBe(true);
+      }
+    });
     test('should throw if network errors are raised continuously', async () => {
       const errorCode = {code: 'ECONNRESET'};
 

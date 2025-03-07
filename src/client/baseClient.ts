@@ -359,7 +359,7 @@ export class BaseClient {
           const {code, message} = body;
 
           const newBody = {
-            errorCode: code,
+            errorCode: this.mapV2ErrorCodeToV1(code),
             errorMsg: message,
           };
 
@@ -843,5 +843,28 @@ export class BaseClient {
 
   private isV2Domain(domain: string): boolean {
     return domain.includes('fninvocations') || domain.includes('functions');
+  }
+
+  private mapV2ErrorCodeToV1(v2ErrorCode: string): string {
+    switch (v2ErrorCode) {
+      case 'com.liveperson.faas.evg.general':
+        return 'com.liveperson.faas.es.general';
+      case 'com.liveperson.faas.evg.invalid':
+        return 'com.liveperson.faas.es.badinput';
+      case 'com.customer.faas.function.threw-error':
+        return 'com.liveperson.faas.handler.custom-failure';
+      case 'com.customer.faas.function.js-runtime-error':
+        return 'com.liveperson.faas.handler.runtime-exception';
+      case 'com.customer.faas.function.execution-exceeded':
+        return 'com.liveperson.faas.handler.executiontime-exceeded	';
+      case 'com.liveperson.faas.function.not-found':
+        return 'com.liveperson.faas.es.missinglambda';
+      case 'com.liveperson.faas.self-service.pending':
+        return v2ErrorCode;
+      case 'com.liveperson.faas.function.runtime.limit-reached':
+        return 'com.liveperson.faas.handler.log-limit-reached	';
+      default:
+        return v2ErrorCode;
+    }
   }
 }
