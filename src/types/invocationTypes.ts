@@ -3,7 +3,7 @@ import {HTTP_METHOD} from './getUrlOptions';
 import {BaseConfig} from '../client/clientConfig';
 
 export interface BaseInvocation extends Partial<BaseConfig> {
-  readonly method?: typeof HTTP_METHOD[keyof typeof HTTP_METHOD];
+  readonly method?: (typeof HTTP_METHOD)[keyof typeof HTTP_METHOD];
   readonly lpEventSource?: string;
   /**
    * @deprecated will be replaced by lpEventSource
@@ -24,7 +24,7 @@ export interface BasePostInvocation extends BaseInvocation {
 export interface EventRequest {
   // setting specifying it with "| string" allows to the use of future event names that are not bundled
   // in the current typings
-  readonly eventId: typeof EVENT[keyof typeof EVENT] | string;
+  readonly eventId: (typeof EVENT)[keyof typeof EVENT] | string;
   readonly skillId?: string;
 }
 
