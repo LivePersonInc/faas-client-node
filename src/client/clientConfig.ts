@@ -21,7 +21,7 @@ export interface DefaultConfig {
   readonly uiCsdsServiceName?: string;
   readonly apiVersion?: string;
   readonly timeout?: number;
-  readonly protocol?: typeof PROTOCOL[keyof typeof PROTOCOL];
+  readonly protocol?: (typeof PROTOCOL)[keyof typeof PROTOCOL];
   /**
    * Equivalent to getLambdasUri for V2 Functions
    */

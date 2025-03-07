@@ -7,7 +7,7 @@ export interface FetchOptions {
   readonly url: string;
   readonly body?: unknown;
   readonly headers?: Headers;
-  readonly method?: typeof HTTP_METHOD[keyof typeof HTTP_METHOD];
+  readonly method?: (typeof HTTP_METHOD)[keyof typeof HTTP_METHOD];
 }
 
 export interface DoFetchOptions extends AuthorizationHeaderOptions {
