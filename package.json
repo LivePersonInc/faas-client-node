@@ -37,10 +37,10 @@
   },
   "dependencies": {
     "got": "11.8.6",
-    "guid-typescript": "^1.0.9",
+    "guid-typescript": "1.0.9",
     "jsonwebtoken": "9.0.2",
-    "simple-oauth2": "^5.0.0",
-    "statman-stopwatch": "^2.18.1",
+    "simple-oauth2": "5.1.0",
+    "statman-stopwatch": "2.18.1",
     "verror": "1.10.1"
   },
   "devDependencies": {
