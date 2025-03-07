@@ -37,7 +37,21 @@ export interface FilterFunctions extends Partial<EventRequest> {
   readonly functionName?: string;
 }
 
-export type Invocation = EventInvocation | UuidInvocation;
+export type Invocation =
+  | (EventInvocation & {
+      /**
+       * Only for V2, If true will transform error V2 codes from body to V1 format
+       *
+       */
+      v1CompError?: boolean;
+    })
+  | (UuidInvocation & {
+      /**
+       * Only for V2, If true will transform error V2 codes from body to V1 format
+       *
+       */
+      v1CompError?: boolean;
+    });
 
 export type IsImplemented = BaseInvocation & EventRequest;
 

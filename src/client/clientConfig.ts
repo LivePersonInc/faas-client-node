@@ -19,6 +19,9 @@ export interface BaseConfig {
 export interface DefaultConfig {
   readonly gwCsdsServiceName?: string;
   readonly uiCsdsServiceName?: string;
+  /**
+   * @deprecated not used in Functions V2
+   */
   readonly apiVersion?: string;
   readonly timeout?: number;
   readonly protocol?: (typeof PROTOCOL)[keyof typeof PROTOCOL];
@@ -26,6 +29,9 @@ export interface DefaultConfig {
    * Equivalent to getLambdasUri for V2 Functions
    */
   readonly getFunctionsUri?: string;
+  /**
+   * @deprecated getFunctionsUri will be used instead for Functions V2
+   */
   readonly getLambdasUri?: string;
   readonly invokeUuidUri?: string;
   readonly invokeEventUri?: string;

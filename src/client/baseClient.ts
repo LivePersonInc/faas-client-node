@@ -352,6 +352,20 @@ export class BaseClient {
 
       return resp;
     } catch (error) {
+      if (data?.v1CompError) {
+        const body = (error as any)?.jse_cause?.jse_info?.response?.body;
+
+        if (body !== undefined) {
+          const {code, message} = body;
+
+          const newBody = {
+            errorCode: code,
+            errorMsg: message,
+          };
+
+          (error as any).jse_cause.jse_info.response.body = newBody;
+        }
+      }
       throw new VError(
         {
           cause: error as Error,
