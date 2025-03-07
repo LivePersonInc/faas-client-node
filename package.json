@@ -32,7 +32,7 @@
     "build"
   ],
   "engines": {
-    "node": ">=18.20.7",
+    "node": ">=16.19.2s",
     "npm": ">=6.4.0"
   },
   "dependencies": {
@@ -40,7 +40,7 @@
     "guid-typescript": "^1.0.9",
     "jsonwebtoken": "9.0.2",
     "simple-oauth2": "^5.0.0",
-    "statman-stopwatch": "^2.11.1",
+    "statman-stopwatch": "^2.18.1",
     "verror": "1.10.1"
   },
   "devDependencies": {
