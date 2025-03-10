@@ -250,7 +250,7 @@ const client = new Client(
 ```js
 const response = await client.invoke({
   lambdaUuid: 'uuid',
-  externalSystem: 'demoSystem',
+  lpEventSource: 'demoSystem',
   body: {
     headers: [],
     payload: {
@@ -265,7 +265,7 @@ const response = await client.invoke({
 ```js
 const response = await client.invoke({
   eventId: 'eventId',
-  externalSystem: 'demoSystem',
+  lpEventSource: 'demoSystem',
   body: {
     headers: [],
     payload: {
@@ -296,7 +296,7 @@ const response = await client.getLambdas({
 });
 ```
 
-#### Error handling
+##### Error handling
 
 Errors with the name `FaaSLambdaError` are raised when the invocation fails due to a custom implementation error. The client internally uses [verror](https://github.com/joyent/node-verror). We recommend to log the `stack` in order to get detailed information about the root cause.
 
@@ -319,11 +319,11 @@ try {
 
 More detailed information on errors that can occur can be found [here.](https://developers.liveperson.com/liveperson-functions-foundations-error-codes.html)
 
-##### V2 Errors
+#### V2 Errors
 
-The functions client handle V2 errors on the same way as V1, the only difference is the response body property on `jse_cause.jse_info.response.body`.
+The functions client can handle V2 errors in the same way as V1, with the only difference being the response body property in `jse_cause.jse_info.response.body`.
 
-V1 error response body example:
+Example of a V1 error response body:
 
 ```js
 {
@@ -332,7 +332,7 @@ V1 error response body example:
 }
 ```
 
-V2 error response body example:
+Example of a V2 error response body:
 
 ```js
 {
@@ -341,5 +341,16 @@ V2 error response body example:
 }
 ```
 
-If you want to get the same format
+To maintain the same format, you can set *v1CompError* to *true* in the `invoke` call:
 
+```js
+  await client.invoke({
+    lambdaUuid: errorLambdaUUID,
+    lpEventSource: 'demoSystem',
+    v1CompError: false,
+    body: {
+      headers: [],
+      payload,
+    },
+  });
+```
