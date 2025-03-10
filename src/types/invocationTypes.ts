@@ -56,7 +56,7 @@ export type Invocation =
 export type IsImplemented = BaseInvocation & EventRequest;
 
 /**
- * @deprecated
+ * @deprecated will be replaced by FunctionRequest
  */
 export type LambdaRequest = FilterLambdas & Partial<BaseInvocation>;
 
