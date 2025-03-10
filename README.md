@@ -297,7 +297,7 @@ const response = await client.getLambdas({
 });
 ```
 
-##### Error handling
+#### Error handling
 
 Errors with the name `FaaSLambdaError` are raised when the invocation fails due to a custom implementation error. The client internally uses [verror](https://github.com/joyent/node-verror). We recommend to log the `stack` in order to get detailed information about the root cause.
 
@@ -320,7 +320,7 @@ try {
 
 More detailed information on errors that can occur can be found [here.](https://developers.liveperson.com/liveperson-functions-foundations-error-codes.html)
 
-#### V2 Errors
+##### V2 Errors
 
 The functions client can handle V2 errors in the same way as V1, with the only difference being the response body property in `jse_cause.jse_info.response.body`.
 
