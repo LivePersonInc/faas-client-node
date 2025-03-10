@@ -21,6 +21,11 @@ export interface JseCause {
     name: string;
   };
 }
+
+export interface V1ErrorBody {
+  errorCode: string;
+  errorMsg: string;
+}
 export interface V2ErrorBody {
   code: string;
   message: string;
@@ -45,7 +50,7 @@ export function hasResponseBody(error: unknown): error is JseCause {
   );
 }
 
-export function isV1ErrorBody(body: unknown): body is V2ErrorBody {
+export function isV1ErrorBody(body: unknown): body is V1ErrorBody {
   return (
     isObject(body) &&
     'errorCode' in body &&

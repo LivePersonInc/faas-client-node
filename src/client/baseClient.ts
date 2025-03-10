@@ -12,7 +12,12 @@ import {
   GetDpopHeader,
 } from './clientConfig';
 import {Tooling} from '../types/tooling';
-import {hasResponseBody, isV2ErrorBody, Response} from '../types/response';
+import {
+  hasResponseBody,
+  isV1ErrorBody,
+  isV2ErrorBody,
+  Response,
+} from '../types/response';
 import {
   Invocation,
   EventInvocation,
@@ -303,7 +308,7 @@ export class BaseClient {
           info: {
             ...this.getDebugConfig(),
           },
-          name: this.isCustomLambdaErrorV1((error as VError).cause())
+          name: this.isCustomLambdaErrorV1(error)
             ? 'FaaSLambdaError'
             : 'FaaSInvokeError',
         },
@@ -354,6 +359,7 @@ export class BaseClient {
         ? 'FaaSLambdaError'
         : 'FaaSInvokeError';
 
+      // Transform error reference to V1 compatibility
       if (data?.v1CompError && hasResponseBody(error)) {
         const body = error.jse_cause.jse_info.response.body;
 
@@ -696,14 +702,18 @@ export class BaseClient {
       },
     };
   }
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  protected isCustomLambdaErrorV1(error: any): boolean {
-    if (error && error.name === 'HttpRequestError') {
-      const isDetailedError = error.jse_info?.response?.body?.errorCode;
+  protected isCustomLambdaErrorV1(error: unknown): boolean {
+    if (
+      hasResponseBody(error) &&
+      isV1ErrorBody(error.jse_cause?.jse_info?.response?.body) &&
+      error.jse_cause?.name === 'HttpRequestError'
+    ) {
+      const isDetailedError =
+        error.jse_cause?.jse_info?.response?.body?.errorCode;
 
       if (
         isDetailedError &&
-        error.jse_info.response.body.errorCode.startsWith(
+        error.jse_cause.jse_info.response.body.errorCode.startsWith(
           'com.liveperson.faas.handler'
         )
       ) {
