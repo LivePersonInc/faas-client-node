@@ -341,7 +341,7 @@ Example of a V2 error response body:
 }
 ```
 
-To maintain the same format, you can set *v1CompError* to *true* in the `invoke` call:
+To preserve the V1 format, you can set *v1CompError* to true in the `invoke` call. The error will be mapped to the V1 format with the corresponding error code, if available. Please note that error messages will not be mapped, and the V2 message will remain unchanged.
 
 ```js
   await client.invoke({
