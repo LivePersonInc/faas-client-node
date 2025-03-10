@@ -113,7 +113,7 @@ export class BaseClient {
    *
    * @param lambdaRequestData filtering data
    * @returns A list of functions.
-   * @deprecated Although still compatible with V2 Functions using 'getFunctions' is recommended
+   * @deprecated While still compatible with V2 Functions, using 'getFunctions' is recommended.
    */
   async getLambdas(lambdaRequestData: LambdaRequest): Promise<Response> {
     const baseMetrics = this.collectBaseMetricsFrom(lambdaRequestData);
@@ -149,7 +149,6 @@ export class BaseClient {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const statusCode = ((error as VError)?.cause as any)?.jse_cause?.jse_info
         ?.response;
-      // TODO: Transform response in case is V2
       const failureMetric = this.enhanceBaseMetrics(baseMetrics, {
         requestDurationInMillis: watch.read(),
         statusCode,
@@ -185,7 +184,6 @@ export class BaseClient {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const statusCode = ((error as VError)?.cause as any)?.jse_cause?.jse_info
         ?.response;
-      // TODO: Transform response in case is V2
       const failureMetric = this.enhanceBaseMetrics(baseMetrics, {
         requestDurationInMillis: watch.read(),
         statusCode,

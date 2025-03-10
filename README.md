@@ -50,6 +50,7 @@ The client should continue functioning as it currently does, calling either the 
 
 - Update the client to Version 2.x.x.
 - Adjust your error handling if you're using the `jse_cause.jse_info.response.body` For more details, refer to the [Error handling](#error-handling) section.
+- If you are using *getFunctions*/*getLambdas* method, you mus consider that functions data format has changed in V2.
 - Optional, but recommended: Replace any usage of deprecated V1 properties/types when possible.
 
 ## Overview
