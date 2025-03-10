@@ -301,7 +301,7 @@ describe('Client V2 flow', () => {
         });
       } catch (error) {
         expect(error).toMatchObject({
-          name: 'FaaSInvokeError',
+          name: 'FaaSLambdaError',
           message: expect.stringContaining('901'),
         });
         expect((error as any)?.jse_cause?.jse_cause?.jse_info?.response?.body).toMatchObject({

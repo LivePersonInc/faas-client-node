@@ -350,6 +350,10 @@ export class BaseClient {
 
       return resp;
     } catch (error) {
+      const name = this.isCustomLambdaErrorV2(error)
+        ? 'FaaSLambdaError'
+        : 'FaaSInvokeError';
+
       if (data?.v1CompError && hasResponseBody(error)) {
         const body = error.jse_cause.jse_info.response.body;
 
@@ -370,9 +374,7 @@ export class BaseClient {
           info: {
             ...this.getDebugConfig(),
           },
-          name: this.isCustomLambdaErrorV2((error as VError).cause())
-            ? 'FaaSLambdaError'
-            : 'FaaSInvokeError',
+          name,
         },
         `Failed to invoke lambda ${
           this.isEventInvocation(invokeData)
@@ -712,14 +714,17 @@ export class BaseClient {
     return false;
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  protected isCustomLambdaErrorV2(error: any): boolean {
-    if (error && error.name === 'HttpRequestError') {
-      const isDetailedError = error.jse_info?.response?.body?.code;
+  protected isCustomLambdaErrorV2(error: unknown): boolean {
+    if (
+      hasResponseBody(error) &&
+      isV2ErrorBody(error.jse_cause?.jse_info?.response?.body) &&
+      error.jse_cause?.name === 'HttpRequestError'
+    ) {
+      const isDetailedError = error.jse_cause?.jse_info?.response?.body?.code;
 
       if (
         isDetailedError &&
-        error.jse_info.response.body.code.startsWith(
+        error.jse_cause.jse_info.response.body.code.startsWith(
           'com.customer.faas.function.threw-error'
         )
       ) {
@@ -729,6 +734,7 @@ export class BaseClient {
 
     return false;
   }
+
   private isEventInvocation(
     invocation: Invocation
   ): invocation is EventInvocation {

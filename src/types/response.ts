@@ -10,7 +10,7 @@ export interface Response {
   retryCount?: number;
 }
 
-// From Error Response
+// From VError Response
 export interface JseCause {
   jse_cause: {
     jse_info: {
@@ -18,6 +18,7 @@ export interface JseCause {
         body: unknown;
       };
     };
+    name: string;
   };
 }
 export interface V2ErrorBody {
@@ -33,12 +34,24 @@ export function hasResponseBody(error: unknown): error is JseCause {
   return (
     isObject(error) &&
     'jse_cause' in error &&
+    'name' in error &&
+    typeof error.name === 'string' &&
     isObject(error.jse_cause) &&
     'jse_info' in error.jse_cause &&
     isObject(error.jse_cause.jse_info) &&
     'response' in error.jse_cause.jse_info &&
     isObject(error.jse_cause.jse_info.response) &&
     'body' in error.jse_cause.jse_info.response
+  );
+}
+
+export function isV1ErrorBody(body: unknown): body is V2ErrorBody {
+  return (
+    isObject(body) &&
+    'errorCode' in body &&
+    'errorMsg' in body &&
+    typeof body.errorCode === 'string' &&
+    typeof body.errorMsg === 'string'
   );
 }
 
