@@ -12,7 +12,7 @@ import {
   GetDpopHeader,
 } from './clientConfig';
 import {Tooling} from '../types/tooling';
-import {Response} from '../types/response';
+import {hasResponseBody, isV2ErrorBody, Response} from '../types/response';
 import {
   Invocation,
   EventInvocation,
@@ -350,10 +350,10 @@ export class BaseClient {
 
       return resp;
     } catch (error) {
-      if (data?.v1CompError) {
-        const body = (error as any)?.jse_cause?.jse_info?.response?.body;
+      if (data?.v1CompError && hasResponseBody(error)) {
+        const body = error.jse_cause.jse_info.response.body;
 
-        if (body !== undefined) {
+        if (isV2ErrorBody(body)) {
           const {code, message} = body;
 
           const newBody = {
@@ -361,7 +361,7 @@ export class BaseClient {
             errorMsg: message,
           };
 
-          (error as any).jse_cause.jse_info.response.body = newBody;
+          error.jse_cause.jse_info.response.body = newBody;
         }
       }
       throw new VError(
