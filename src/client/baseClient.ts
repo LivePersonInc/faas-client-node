@@ -168,7 +168,7 @@ export class BaseClient {
   }
 
   async getFunctions(functionRequestData: FunctionRequest): Promise<Response> {
-    const baseMetrics = this.collectBaseMetricsFrom(functionRequestData); // FIXME
+    const baseMetrics = this.collectBaseMetricsFrom(functionRequestData);
     const watch = new stopwatch();
     watch.start();
     try {
