@@ -129,6 +129,7 @@ export class BaseClient {
         this.config.uiCsdsServiceName
       ));
 
+      // TODO: Remove once V1 is shut down.
       const isV2 = this.isV2Domain(domain);
 
       const resp = isV2
