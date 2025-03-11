@@ -1,11 +1,17 @@
 import {Client} from '../../src/client/client';
 import {GetAuthorizationHeader} from '../../src/client/clientConfig';
+import {getBearer} from './helper';
 
 const accountId = process.env['ACCOUNT_ID'] || 'does-not-exist';
+const username = process.env['USER_NAME'] || 'does-not-exist';
+const password = process.env['PASSWORD'] || 'does-not-exist';
 const userId = process.env['USER_ID'] || 'does-not-exist';
-const bearer = process.env['BEARER'] || 'does-not-exist';
+let bearer = '';
 
 describe('Get Functions V2', () => {
+  beforeAll(async () => {
+    bearer = await getBearer(accountId, username, password);
+  });
   it('should get V2 functions', async () => {
     // custom auth implementation start
     const getAuthorizationHeader: GetAuthorizationHeader = async ({
