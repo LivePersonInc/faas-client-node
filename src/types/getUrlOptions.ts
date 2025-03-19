@@ -3,7 +3,7 @@ export interface GetUrlOptions {
   readonly domain: string;
   readonly apiVersion: string;
   readonly externalSystem?: string;
-  readonly protocol: typeof PROTOCOL[keyof typeof PROTOCOL];
+  readonly protocol: (typeof PROTOCOL)[keyof typeof PROTOCOL];
   readonly path: string;
 
   readonly [others: string]: unknown;

@@ -2,7 +2,11 @@ export interface InvocationMetricData {
   accountId: string;
   requestDurationInMillis: number;
   domain?: string;
+  /**
+   * @deprecated use lpEventSource Instead
+   */
   externalSystem?: string;
+  lpEventSource?: string;
   userId?: string;
   event?: string;
   UUID?: string;

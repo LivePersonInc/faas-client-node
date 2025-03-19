@@ -19,13 +19,24 @@ export interface BaseConfig {
 export interface DefaultConfig {
   readonly gwCsdsServiceName?: string;
   readonly uiCsdsServiceName?: string;
+  /**
+   * @deprecated not used in Functions V2
+   */
   readonly apiVersion?: string;
   readonly timeout?: number;
-  readonly protocol?: typeof PROTOCOL[keyof typeof PROTOCOL];
+  readonly protocol?: (typeof PROTOCOL)[keyof typeof PROTOCOL];
+  /**
+   * Equivalent to getLambdasUri for V2 Functions
+   */
+  readonly getFunctionsUri?: string;
+  /**
+   * @deprecated getFunctionsUri will be used instead for Functions V2
+   */
   readonly getLambdasUri?: string;
   readonly invokeUuidUri?: string;
   readonly invokeEventUri?: string;
   readonly isImplementedUri?: string;
+
   readonly failOnErrorStatusCode?: boolean;
   /** Optional HTTP request headers that should be included in CSDS requests. */
   readonly csdsHttpHeaders?: {[key: string]: unknown};
@@ -97,6 +108,7 @@ export const defaultConfig: Required<DefaultConfig> = {
   timeout: 35000, // ms
   protocol: PROTOCOL.HTTPS,
   getLambdasUri: 'api/account/%s/lambdas/',
+  getFunctionsUri: 'api/account/%s/functions',
   invokeUuidUri: 'api/account/%s/lambdas/%s/invoke',
   invokeEventUri: 'api/account/%s/events/%s/invoke',
   isImplementedUri: 'api/account/%s/events/%s/isImplemented',

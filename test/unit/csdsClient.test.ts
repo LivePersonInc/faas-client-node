@@ -39,7 +39,7 @@ describe('CsdsClient', () => {
   afterEach(jest.clearAllMocks);
   describe('Success flows', () => {
     it('should get csds entry if it exists', async () => {
-      const scope = nock('http://hc1n.dev.lprnd.net')
+      const scope = nock('http://csds-app.qa.int.gw.lpcloud.io')
         .get('/api/account/le4711/service/baseURI.json?version=1.0')
         .once()
         .reply(200, csdsApiResultQA)
@@ -54,7 +54,7 @@ describe('CsdsClient', () => {
     });
 
     it('should cache requests', async () => {
-      const scope = nock('http://hc1n.dev.lprnd.net')
+      const scope = nock('http://csds-app.qa.int.gw.lpcloud.io')
         .get('/api/account/le4711/service/baseURI.json?version=1.0')
         .once()
         .reply(200, csdsApiResultQA);
@@ -85,7 +85,7 @@ describe('CsdsClient', () => {
 
   describe('Unhappy flows', () => {
     it('should throw if domain can not be found', async () => {
-      const scope = nock('http://hc1n.dev.lprnd.net')
+      const scope = nock('http://csds-app.qa.int.gw.lpcloud.io')
         .get('/api/account/le4711/service/baseURI.json?version=1.0')
         .once()
         .reply(200, csdsApiResultQA);
@@ -106,7 +106,7 @@ describe('CsdsClient', () => {
     it('should throw if result is unexpected', async () => {
       const errorCode = {code: 'ECONNRESET'};
 
-      const scope = nock('http://hc1n.dev.lprnd.net')
+      const scope = nock('http://csds-app.qa.int.gw.lpcloud.io')
         .get('/api/account/le4711/service/baseURI.json?version=1.0')
         .thrice()
         .replyWithError(errorCode);
@@ -125,7 +125,7 @@ describe('CsdsClient', () => {
     });
 
     it('should throw if response is empty', async () => {
-      const scope = nock('http://hc1n.dev.lprnd.net')
+      const scope = nock('http://csds-app.qa.int.gw.lpcloud.io')
         .get('/api/account/le4711/service/baseURI.json?version=1.0')
         .once()
         .reply(200, []);

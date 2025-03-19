@@ -5,10 +5,10 @@ import {createHmac} from 'crypto';
 import OAuth from 'oauth-1.0a';
 
 const successLambdaUUID =
-  process.env['SUCCESS_LAMBDA_UUID'] || 'does-not-exist';
-const accountId = process.env['ACCOUNT_ID'] || 'does-not-exist';
-const clientId = process.env['CLIENT_ID'] || 'does-not-exist';
-const clientSecret = process.env['CLIENT_SECRET'] || 'does-not-exist';
+  process.env['SUCCESS_LAMBDA_UUID_V1'] || 'does-not-exist';
+const accountId = process.env['ACCOUNT_ID_V1'] || 'does-not-exist';
+const clientId = process.env['CLIENT_ID_V1'] || 'does-not-exist';
+const clientSecret = process.env['CLIENT_SECRET_V1'] || 'does-not-exist';
 const oauthApiKey = process.env['OAUTH_API_KEY'] || 'does-not-exist';
 const oauthApiSecret = process.env['OAUTH_API_SECRET'] || 'does-not-exist';
 const oauthTokenKey = process.env['OAUTH_TOKEN_KEY'] || 'does-not-exist';

@@ -1,5 +1,10 @@
 import {VError} from 'verror';
-import {DefaultConfig, BaseConfig, Config, DpopCredentials} from '../../src/client/clientConfig';
+import {
+  DefaultConfig,
+  BaseConfig,
+  Config,
+  DpopCredentials,
+} from '../../src/client/clientConfig';
 import {PROTOCOL, HTTP_METHOD} from '../../src/types/getUrlOptions';
 import {Tooling} from '../../src/types/tooling';
 import {IsImplementedCache} from '../../src/helper/isImplementedCache';
@@ -11,7 +16,7 @@ const defaultTestConfig: Required<DefaultConfig> = {
   gwCsdsServiceName: 'faasGW',
   uiCsdsServiceName: 'faasUI',
   apiVersion: '1',
-  timeout: 10_000, // ms
+  timeout: 10000, // ms
   protocol: PROTOCOL.HTTPS,
   getLambdasUri: 'api/account/%s/lambdas/',
   invokeUuidUri: 'api/account/%s/lambdas/%s/invoke',
@@ -22,6 +27,7 @@ const defaultTestConfig: Required<DefaultConfig> = {
   csdsTtlSeconds: 600,
   jwtRefreshAfterMinutes: 30,
   isImplementedCacheDurationInSeconds: 60,
+  getFunctionsUri: 'api/account/%s/functions',
 };
 
 const testBaseConfig: Required<BaseConfig> = {
@@ -66,6 +72,29 @@ const testTooling: Required<Tooling> = {
   })),
   generateId: jest.fn(() => 'testId'),
   getCsdsEntry: jest.fn(() => Promise.resolve('test-domain.com')),
+  isImplementedCache: new IsImplementedCache(
+    defaultTestConfig.isImplementedCacheDurationInSeconds
+  ),
+  metricCollector: {
+    onInvoke: jest.fn(() => {}),
+    onGetLambdas: jest.fn(() => {}),
+    onIsImplemented: jest.fn(() => {}),
+  },
+};
+
+const testToolingV2: Required<Tooling> = {
+  fetch: jest.fn(async () => ({
+    body: {
+      implemented: true,
+    },
+    headers: {},
+    url: 'https://fninvocations-domain.com/',
+    ok: true,
+    status: 200,
+    statusText: 'Ok',
+  })),
+  generateId: jest.fn(() => 'testId'),
+  getCsdsEntry: jest.fn(() => Promise.resolve('fninvocations-domain.com')),
   isImplementedCache: new IsImplementedCache(
     defaultTestConfig.isImplementedCacheDurationInSeconds
   ),
@@ -156,7 +185,10 @@ const invokeWithDpopAuth = async (data: Invocation): Promise<Response> => {
     })
   );
 
-  expect((testConfigWithDpopAuth.authStrategy as DpopCredentials).getAccessTokenInternal).toHaveBeenCalledWith("https://test-domain.com");
+  expect(
+    (testConfigWithDpopAuth.authStrategy as DpopCredentials)
+      .getAccessTokenInternal
+  ).toHaveBeenCalledWith('https://test-domain.com');
   return resp;
 };
 
@@ -230,7 +262,10 @@ const getLambdasWithDpopAuth = async (
       method: HTTP_METHOD.GET,
     })
   );
-  expect((testConfigWithDpopAuth.authStrategy as DpopCredentials).getAccessTokenInternal).toHaveBeenCalledWith("https://test-domain.com");
+  expect(
+    (testConfigWithDpopAuth.authStrategy as DpopCredentials)
+      .getAccessTokenInternal
+  ).toHaveBeenCalledWith('https://test-domain.com');
   return resp;
 };
 
@@ -557,7 +592,10 @@ describe('Base Client', () => {
           method: HTTP_METHOD.GET,
         })
       );
-      expect((testConfigWithDpopAuth.authStrategy as DpopCredentials).getAccessTokenInternal).toHaveBeenCalledWith("https://test-domain.com");
+      expect(
+        (testConfigWithDpopAuth.authStrategy as DpopCredentials)
+          .getAccessTokenInternal
+      ).toHaveBeenCalledWith('https://test-domain.com');
     });
 
     test('getLambdas with filtering', async () => {
@@ -699,6 +737,50 @@ describe('Base Client', () => {
       );
     });
 
+    test('invoke method with lambda UUID with failed invocation general error V2', async () => {
+      expect.hasAssertions();
+
+      const failureTooling = {
+        ...testToolingV2,
+        fetch: jest.fn(async () => ({
+          ok: false,
+          body: {
+            code: 'com.liveperson.faas.evg.general',
+            message: 'Oops, something went wrong.',
+          },
+          headers: {},
+          url: 'https://fninvocations-domain.com/',
+          status: 500,
+          statusText: 'Ok',
+        })),
+      };
+
+      const customTestConfig = {...testConfig, failOnErrorStatusCode: true};
+
+      const client = new BaseClient(customTestConfig, failureTooling);
+      await expect(
+        client.invoke({
+          lambdaUuid: '12345678',
+          body: {payload: null},
+          externalSystem: 'test',
+        })
+      ).rejects.toMatchObject({
+        name: 'FaaSInvokeError',
+      });
+
+      expect(failureTooling.fetch).toHaveBeenCalledTimes(1);
+      expect(failureTooling.metricCollector.onInvoke).toHaveBeenCalledTimes(1);
+      expect(failureTooling.metricCollector.onInvoke).toHaveBeenCalledWith(
+        expect.objectContaining({
+          accountId: testConfig.accountId,
+          fromCache: false,
+          externalSystem: 'test',
+          UUID: '12345678',
+          domain: 'fninvocations-domain.com',
+        })
+      );
+    });
+
     test('invoke method with lambda UUID with failed custom error', async () => {
       expect.hasAssertions();
 
@@ -712,7 +794,7 @@ describe('Base Client', () => {
           },
           headers: {},
           url: 'https://test-domain.com/',
-          status: 500,
+          status: 901,
           statusText: 'Ok',
         })),
       };
@@ -739,6 +821,50 @@ describe('Base Client', () => {
           externalSystem: 'test',
           UUID: '12345678',
           domain: 'test-domain.com',
+        })
+      );
+    });
+
+    test('invoke method with lambda UUID with failed custom error V2', async () => {
+      expect.hasAssertions();
+
+      const failureTooling = {
+        ...testToolingV2,
+        fetch: jest.fn(async () => ({
+          ok: false,
+          body: {
+            code: 'com.customer.faas.function.threw-error',
+            message: 'Oops, something went wrong.',
+          },
+          headers: {},
+          url: 'https://fninvocations-domain.com',
+          status: 901,
+          statusText: 'Ok',
+        })),
+      };
+
+      const customTestConfig = {...testConfig, failOnErrorStatusCode: true};
+
+      const client = new BaseClient(customTestConfig, failureTooling);
+      await expect(
+        client.invoke({
+          lambdaUuid: '12345678',
+          body: {payload: null},
+          externalSystem: 'test',
+        })
+      ).rejects.toMatchObject({
+        name: 'FaaSLambdaError',
+      });
+
+      expect(failureTooling.fetch).toHaveBeenCalledTimes(1);
+      expect(failureTooling.metricCollector.onInvoke).toHaveBeenCalledTimes(1);
+      expect(failureTooling.metricCollector.onInvoke).toHaveBeenCalledWith(
+        expect.objectContaining({
+          accountId: testConfig.accountId,
+          fromCache: false,
+          externalSystem: 'test',
+          UUID: '12345678',
+          domain: 'fninvocations-domain.com',
         })
       );
     });

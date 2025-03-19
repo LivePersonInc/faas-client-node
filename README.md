@@ -21,8 +21,37 @@ It offers functionality to retrieve all lambdas and invoke them via lambda UUID 
       - [Checking if an event type/id is available/implemented](#check-if-an-event-typeid-is-availableimplemented)
       - [Getting a list of existing lambdas](#getting-a-list-of-existing-lambdas)
     - [Error handling](#error-handling)
+      - [V2 Errors](#v2-errors)
 
 <!-- tocstop -->
+
+## 🚨 Important Project Update: Functions V2 compatibility released! 🚨
+
+We are excited to announce a **major update** to our client: **Functions V2** is now available! 🎉
+
+### What's New?
+
+- The client is fully compatible with both Functions V1 and V2. It has been implemented in a way that minimizes the need for changes. The client will automatically call the appropriate platform (V1 or V2) based on your account's CSDS domain.
+- The following configuration properties and types have been deprecated. They are still supported for V1, but we recommend updating them, if possible, for a smoother transition to V2:
+  - *DefaultConfig* `apiVersion`: not available in V2. Still used for V1.
+  - *DefaultConfig* `getLambdasUri`: use `getFunctionsUri` instead.
+  - *InvocationMetricData* `externalSystem`: use `lpEventSource` instead.
+  - Method *getLambdas()*: use `getFunctions` instead.
+  - Type *BaseQuery*: not used in V2. Still used for V1.
+  - Type *GetLambdasQuery*: replaced by `GetFunctionsQuery` in V2.
+  - Type *LambdaRequest*: replaced by `FunctionRequest`in V2.
+- The error response body returned by the V2 platform has changed, but the Functions client response format remains the same. For more details, please refer to the [Error handling](#error-handling) section.
+
+### How to Use the New Feature
+
+The client should continue functioning as it currently does, calling either the V1 or V2 platform based on the account. If you are handling function errors from the error response body within the client response payload (`jse_cause.jse_info.response.body`), please note that the V2 error format has changed. You will need to adjust your handling accordingly. For more details, refer to the [Error handling](#error-handling) section.
+
+### Action Required
+
+- Update the client to Version 2.x.x.
+- Adjust your error handling if you're using the `jse_cause.jse_info.response.body` For more details, refer to the [Error handling](#error-handling) section.
+- If you are using *getFunctions*/*getLambdas* method, you mus consider that functions data format has changed in V2.
+- Optional, but recommended: Replace any usage of deprecated V1 properties/types when possible.
 
 ## Overview
 
@@ -50,7 +79,7 @@ _Note:_ The library exposes typings for IDE assistance/auto-complete and compile
 
 ### Initializing the client
 
-The client will use the OAuth2.0 flow `client_credentials` for authorization. Please refer to these [docs](https://developers.liveperson.com/liveperson-functions-external-invocations-client-credentials.html) for further information on that. On each request the client will check if the `JWT` is about to expire. If this is the case, the client will try to refresh it. If the `JWT` is expired and the client failed to refresh it, an `Error` is thrown. The time after which the refreshing logic will kick in can be specified via the property `jwtRefreshAfterMinutes`. Alternatively, you can provide your own authorization method that generates a suitable authorization header
+The client will use the OAuth2.0 flow `client_credentials` for authorization. Please refer to these [docs](https://developers.liveperson.com/liveperson-functions-foundations-external-invocation.html#generation-of-client_id-and-client_secret) for further information on that. On each request the client will check if the `JWT` is about to expire. If this is the case, the client will try to refresh it. If the `JWT` is expired and the client failed to refresh it, an `Error` is thrown. The time after which the refreshing logic will kick in can be specified via the property `jwtRefreshAfterMinutes`. Alternatively, you can provide your own authorization method that generates a suitable authorization header
 by implementing a method that fulfills the GetAuthorizationHeader-Interface:
 
 ```ts
@@ -222,7 +251,7 @@ const client = new Client(
 ```js
 const response = await client.invoke({
   lambdaUuid: 'uuid',
-  externalSystem: 'demoSystem',
+  lpEventSource: 'demoSystem',
   body: {
     headers: [],
     payload: {
@@ -237,7 +266,7 @@ const response = await client.invoke({
 ```js
 const response = await client.invoke({
   eventId: 'eventId',
-  externalSystem: 'demoSystem',
+  lpEventSource: 'demoSystem',
   body: {
     headers: [],
     payload: {
@@ -289,4 +318,40 @@ try {
 }
 ```
 
-More detailed information on errors that can occur can be found [here.](https://developers.liveperson.com/liveperson-functions-external-invocations-error-codes.html)
+More detailed information on errors that can occur can be found [here.](https://developers.liveperson.com/liveperson-functions-foundations-error-codes.html)
+
+##### V2 Errors
+
+The functions client can handle V2 errors in the same way as V1, with the only difference being the response body property in `jse_cause.jse_info.response.body`.
+
+Example of a V1 error response body:
+
+```js
+{
+    errorCode: "com.liveperson.faas.handler.custom-failure",
+    errorMsg: "Function Invocation failed due to an issue caused by customer coding",
+}
+```
+
+Example of a V2 error response body:
+
+```js
+{
+  code: "com.customer.faas.function.threw-error",
+  message: "Function Invocation failed due to an issue caused by customer coding",
+}
+```
+
+To preserve the V1 format, you can set *v1CompError* to true in the `invoke` call. The error will be mapped to the V1 format with the corresponding error code, if available. Please note that error messages will not be mapped, and the V2 message will remain unchanged.
+
+```js
+  await client.invoke({
+    lambdaUuid: errorLambdaUUID,
+    lpEventSource: 'demoSystem',
+    v1CompError: false,
+    body: {
+      headers: [],
+      payload,
+    },
+  });
+```

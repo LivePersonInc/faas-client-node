@@ -12,14 +12,20 @@ import {
   GetDpopHeader,
 } from './clientConfig';
 import {Tooling} from '../types/tooling';
-import {Response} from '../types/response';
+import {
+  hasResponseBody,
+  isV1ErrorBody,
+  isV2ErrorBody,
+  Response,
+} from '../types/response';
 import {
   Invocation,
   EventInvocation,
   LambdaRequest,
   IsImplemented,
+  FunctionRequest,
 } from '../types/invocationTypes';
-import {BaseQuery, GetLambdasQuery} from '../types/queries';
+import {BaseQuery, GetFunctionsQuery, GetLambdasQuery} from '../types/queries';
 import {ImplementedEvent} from '../helper/isImplementedCache';
 import {DoFetchOptions} from '../types/fetchOptions';
 import {AppJwtAuthentication} from '../helper/appJwtAuthentication';
@@ -80,7 +86,13 @@ export class BaseClient {
       const domain = (baseMetrics.domain = await this.resolveDomain(
         this.config.gwCsdsServiceName
       ));
-      const response = await this.performInvocation(invocationData, domain);
+
+      const isV2 = this.isV2Domain(domain);
+
+      const response = isV2
+        ? await this.performInvocationV2(invocationData, domain)
+        : await this.performInvocationV1(invocationData, domain);
+
       const successMetric = this.enhanceBaseMetrics(baseMetrics, {
         requestDurationInMillis: watch.read(),
       });
@@ -106,8 +118,8 @@ export class BaseClient {
    *
    * @param lambdaRequestData filtering data
    * @returns A list of functions.
+   * @deprecated While still compatible with V2 Functions, using 'getFunctions' is recommended.
    */
-
   async getLambdas(lambdaRequestData: LambdaRequest): Promise<Response> {
     const baseMetrics = this.collectBaseMetricsFrom(lambdaRequestData);
     const watch = new stopwatch();
@@ -116,10 +128,59 @@ export class BaseClient {
       const domain = (baseMetrics.domain = await this.resolveDomain(
         this.config.uiCsdsServiceName
       ));
-      const resp = await this.performGetLambdasRequest(
-        lambdaRequestData,
+
+      // TODO: Remove once V1 is shut down.
+      const isV2 = this.isV2Domain(domain);
+
+      const resp = isV2
+        ? await this.performGetFunctionsRequest(
+            {
+              state:
+                typeof lambdaRequestData.state === 'string'
+                  ? [lambdaRequestData.state]
+                  : lambdaRequestData.state,
+              skillId: lambdaRequestData.skillId,
+              eventId: lambdaRequestData.eventId,
+            },
+            domain
+          )
+        : await this.performGetLambdasRequest(lambdaRequestData, domain);
+
+      const successMetric = this.enhanceBaseMetrics(baseMetrics, {
+        requestDurationInMillis: watch.read(),
+      });
+      this.tooling.metricCollector?.onGetLambdas(successMetric);
+      return resp;
+    } catch (error) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const statusCode = ((error as VError)?.cause as any)?.jse_cause?.jse_info
+        ?.response;
+      const failureMetric = this.enhanceBaseMetrics(baseMetrics, {
+        requestDurationInMillis: watch.read(),
+        statusCode,
+        error,
+      });
+
+      this.tooling.metricCollector?.onGetLambdas(failureMetric);
+      throw error;
+    } finally {
+      watch.stop();
+    }
+  }
+
+  async getFunctions(functionRequestData: FunctionRequest): Promise<Response> {
+    const baseMetrics = this.collectBaseMetricsFrom(functionRequestData);
+    const watch = new stopwatch();
+    watch.start();
+    try {
+      const domain = (baseMetrics.domain = await this.resolveDomain(
+        this.config.uiCsdsServiceName
+      ));
+      const resp = await this.performGetFunctionsRequest(
+        functionRequestData,
         domain
       );
+
       const successMetric = this.enhanceBaseMetrics(baseMetrics, {
         requestDurationInMillis: watch.read(),
       });
@@ -170,10 +231,19 @@ export class BaseClient {
         const domain = (baseMetrics.domain = await this.resolveDomain(
           this.config.gwCsdsServiceName
         ));
-        const implemented = await this.performGetRequestForIsImplemented(
-          isImplementedRequestData,
-          domain
-        );
+
+        const isV2 = this.isV2Domain(domain);
+
+        const implemented = isV2
+          ? await this.performGetRequestForIsImplementedV2(
+              isImplementedRequestData,
+              domain
+            )
+          : await this.performGetRequestForIsImplemented(
+              isImplementedRequestData,
+              domain
+            );
+
         const successMetric = this.enhanceBaseMetrics(baseMetrics, {
           requestDurationInMillis: watch.read(),
         });
@@ -200,7 +270,7 @@ export class BaseClient {
       }
     }
   }
-  private async performInvocation(data: Invocation, domain: string) {
+  private async performInvocationV1(data: Invocation, domain: string) {
     const invokeData = {
       method: HTTP_METHOD.POST,
       ...this.config,
@@ -219,7 +289,8 @@ export class BaseClient {
     const query: BaseQuery = {
       v: invokeData.apiVersion,
       skillId: data?.skillId,
-      externalSystem: invokeData.externalSystem,
+      externalSystem:
+        invokeData.lpEventSource || invokeData.externalSystem || 'unknown',
     };
     try {
       const url = await this.getUrl({
@@ -238,9 +309,79 @@ export class BaseClient {
           info: {
             ...this.getDebugConfig(),
           },
-          name: this.isCustomLambdaError((error as VError).cause())
+          name: this.isCustomLambdaErrorV1(error)
             ? 'FaaSLambdaError'
             : 'FaaSInvokeError',
+        },
+        `Failed to invoke lambda ${
+          this.isEventInvocation(invokeData)
+            ? `for event: "${invokeData.eventId}"`
+            : `: ${invokeData.lambdaUuid}"`
+        }`
+      );
+    }
+  }
+
+  private async performInvocationV2(data: Invocation, domain: string) {
+    const invokeData = {
+      method: HTTP_METHOD.POST,
+      ...this.config,
+      ...data,
+      requestId: this.tooling.generateId(),
+      headers: {
+        'LP-EventSource':
+          data.lpEventSource || data.externalSystem || 'Unknown',
+      },
+    };
+
+    const path = this.isEventInvocation(data)
+      ? format(this.config.invokeEventUri, this.config.accountId, data.eventId)
+      : format(
+          this.config.invokeUuidUri,
+          this.config.accountId,
+          data.lambdaUuid
+        );
+
+    const query = data.skillId !== undefined ? {skillId: data.skillId} : {};
+
+    try {
+      const url = await this.getUrl({
+        path,
+        domain,
+        query,
+        ...invokeData,
+      });
+
+      const resp = await this.doFetch({url, domain, ...invokeData});
+
+      return resp;
+    } catch (error) {
+      const name = this.isCustomLambdaErrorV2(error)
+        ? 'FaaSLambdaError'
+        : 'FaaSInvokeError';
+
+      // Transform error reference to V1 compatibility
+      if (data?.v1CompError && hasResponseBody(error)) {
+        const body = error.jse_cause.jse_info.response.body;
+
+        if (isV2ErrorBody(body)) {
+          const {code, message} = body;
+
+          const newBody = {
+            errorCode: this.mapV2ErrorCodeToV1(code),
+            errorMsg: message,
+          };
+
+          error.jse_cause.jse_info.response.body = newBody;
+        }
+      }
+      throw new VError(
+        {
+          cause: error as Error,
+          info: {
+            ...this.getDebugConfig(),
+          },
+          name,
         },
         `Failed to invoke lambda ${
           this.isEventInvocation(invokeData)
@@ -291,6 +432,50 @@ export class BaseClient {
     }
   }
 
+  /**
+   *  Equivalent to performGetLambdasRequest for V2
+   */
+  private async performGetFunctionsRequest(
+    data: FunctionRequest,
+    domain: string
+  ): Promise<Response> {
+    const requestData = {
+      method: HTTP_METHOD.GET,
+      ...this.config,
+      ...data,
+      requestId: this.tooling.generateId(),
+    };
+    const path = format(requestData.getFunctionsUri, requestData.accountId);
+    const query: GetFunctionsQuery = {
+      eventId: requestData.eventId,
+      state: data.state === undefined ? [] : data.state,
+      userId: data.userId,
+      functionName: data.functionName,
+    };
+    try {
+      const url = await this.getUrl({
+        path,
+        domain,
+        query,
+        ...requestData,
+      });
+
+      const resp = await this.doFetch({url, domain, ...requestData});
+      return resp;
+    } catch (error) {
+      throw new VError(
+        {
+          cause: error as Error,
+          info: {
+            ...this.getDebugConfig(),
+          },
+          name: 'FaaSGetFunctionsError',
+        },
+        `Failed to get functions from account Id "${requestData.accountId}".`
+      );
+    }
+  }
+
   private async performGetRequestForIsImplemented(
     data: IsImplemented,
     domain: string
@@ -310,8 +495,66 @@ export class BaseClient {
       const query: BaseQuery = {
         v: isImplementedData.apiVersion,
         skillId: isImplementedData.skillId,
-        externalSystem: isImplementedData.externalSystem,
+        externalSystem: isImplementedData.externalSystem || 'Unknown',
       };
+      const url = await this.getUrl({
+        path,
+        domain,
+        query,
+        ...isImplementedData,
+      });
+      const {
+        body: {implemented},
+      }: Response = await this.doFetch({
+        url,
+        domain,
+        ...isImplementedData,
+      });
+      if (implemented === undefined) {
+        throw new VError(
+          {
+            name: 'FaasIsImplementedParseError',
+          },
+          'Response could not be parsed'
+        );
+      }
+      return implemented as boolean;
+    } catch (error) {
+      throw new VError(
+        {
+          cause: error as Error,
+          info: {
+            ...this.getDebugConfig(),
+          },
+          name: 'FaaSIsImplementedError',
+        },
+        `Failed to check if event "${data.eventId}" is implemented.`
+      );
+    }
+  }
+
+  private async performGetRequestForIsImplementedV2(
+    data: IsImplemented,
+    domain: string
+  ): Promise<boolean> {
+    const isImplementedData = {
+      method: HTTP_METHOD.GET,
+      ...this.config,
+      ...data,
+      requestId: this.tooling.generateId(),
+    };
+    try {
+      const path = format(
+        isImplementedData.isImplementedUri,
+        isImplementedData.accountId,
+        isImplementedData.eventId
+      );
+      const query =
+        isImplementedData.userId !== undefined
+          ? {
+              userId: isImplementedData.userId,
+            }
+          : {};
       const url = await this.getUrl({
         path,
         domain,
@@ -352,7 +595,7 @@ export class BaseClient {
    * Base function to perform requests against the FaaS services.
    */
   protected async doFetch(options: DoFetchOptions): Promise<Response> {
-    const {url, domain, body, method, requestId} = options;
+    const {url, domain, body, method, requestId, headers} = options;
     try {
       const requestOptions = {
         url,
@@ -361,6 +604,7 @@ export class BaseClient {
           'Content-Type': 'application/json',
           'User-Agent': `${name}@${version}`,
           'X-Request-ID': requestId,
+          ...headers,
         },
         method,
       };
@@ -459,14 +703,18 @@ export class BaseClient {
       },
     };
   }
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  protected isCustomLambdaError(error: any): boolean {
-    if (error && error.name === 'HttpRequestError') {
-      const isDetailedError = error.jse_info?.response?.body?.errorCode;
+  protected isCustomLambdaErrorV1(error: unknown): boolean {
+    if (
+      hasResponseBody(error) &&
+      isV1ErrorBody(error.jse_cause?.jse_info?.response?.body) &&
+      error.jse_cause?.name === 'HttpRequestError'
+    ) {
+      const isDetailedError =
+        error.jse_cause?.jse_info?.response?.body?.errorCode;
 
       if (
         isDetailedError &&
-        error.jse_info.response.body.errorCode.startsWith(
+        error.jse_cause.jse_info.response.body.errorCode.startsWith(
           'com.liveperson.faas.handler'
         )
       ) {
@@ -476,6 +724,28 @@ export class BaseClient {
 
     return false;
   }
+
+  protected isCustomLambdaErrorV2(error: unknown): boolean {
+    if (
+      hasResponseBody(error) &&
+      isV2ErrorBody(error.jse_cause?.jse_info?.response?.body) &&
+      error.jse_cause?.name === 'HttpRequestError'
+    ) {
+      const isDetailedError = error.jse_cause?.jse_info?.response?.body?.code;
+
+      if (
+        isDetailedError &&
+        error.jse_cause.jse_info.response.body.code.startsWith(
+          'com.customer.faas.function.threw-error'
+        )
+      ) {
+        return true;
+      }
+    }
+
+    return false;
+  }
+
   private isEventInvocation(
     invocation: Invocation
   ): invocation is EventInvocation {
@@ -538,13 +808,17 @@ export class BaseClient {
   }
 
   private collectBaseMetricsFrom(
-    data: LambdaRequest | IsImplemented
+    data: LambdaRequest | FunctionRequest | IsImplemented
   ): Record<string, unknown> {
     return {
       accountId: this.config.accountId,
       domain: 'unresolved',
       fromCache: false,
+      /**
+       * @deprecated Use lpEventSource instead
+       */
       externalSystem: data?.externalSystem,
+      lpEventSource: data?.lpEventSource || data?.externalSystem,
       skillId: data?.skillId,
     };
   }
@@ -556,7 +830,11 @@ export class BaseClient {
       accountId: this.config.accountId,
       domain: 'unresolved',
       fromCache: false,
-      externalSystem: data.externalSystem,
+      /**
+       * @deprecated Use lpEventSource instead
+       */
+      externalSystem: data?.externalSystem,
+      lpEventSource: data?.lpEventSource || data?.externalSystem,
     };
     return this.isEventInvocation(data)
       ? {
@@ -576,5 +854,32 @@ export class BaseClient {
   ): InvocationMetricData {
     const enhancedMetrics = Object.assign({}, baseMetrics, additionalMetrics);
     return enhancedMetrics as InvocationMetricData;
+  }
+
+  private isV2Domain(domain: string): boolean {
+    return domain.includes('fninvocations') || domain.includes('functions');
+  }
+
+  private mapV2ErrorCodeToV1(v2ErrorCode: string): string {
+    switch (v2ErrorCode) {
+      case 'com.liveperson.faas.evg.general':
+        return 'com.liveperson.faas.es.general';
+      case 'com.liveperson.faas.evg.invalid':
+        return 'com.liveperson.faas.es.badinput';
+      case 'com.customer.faas.function.threw-error':
+        return 'com.liveperson.faas.handler.custom-failure';
+      case 'com.customer.faas.function.js-runtime-error':
+        return 'com.liveperson.faas.handler.runtime-exception';
+      case 'com.customer.faas.function.execution-exceeded':
+        return 'com.liveperson.faas.handler.executiontime-exceeded	';
+      case 'com.liveperson.faas.function.not-found':
+        return 'com.liveperson.faas.es.missinglambda';
+      case 'com.liveperson.faas.self-service.pending':
+        return v2ErrorCode;
+      case 'com.liveperson.faas.function.runtime.limit-reached':
+        return 'com.liveperson.faas.handler.log-limit-reached	';
+      default:
+        return v2ErrorCode;
+    }
   }
 }
