@@ -44,7 +44,7 @@ describe('Invoke by UUID', () => {
   });
 
   // Skipped, Oauth1 will be deprecated
-  it.skip('should invoke and get result via custom Oauth1 implementation', async () => {
+ /* it.skip('should invoke and get result via custom Oauth1 implementation', async () => {
     // custom auth implementation start
     const getAuthorizationHeader: GetAuthorizationHeader = async ({
       url,
@@ -92,7 +92,7 @@ describe('Invoke by UUID', () => {
     });
 
     expect(response.ok).toEqual(true);
-  });
+  });*/
 
   it('should fail if lambda does not exist', async () => {
     const nonExistingLambda = 'c521cadf-d444-4519-ad11-1c1111114415';
