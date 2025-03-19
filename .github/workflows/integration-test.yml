@@ -20,8 +20,8 @@ jobs:
     - run: npm install
     - run: npm run integration
       env:
-        ACCOUNT_ID: '89158487'
-        SUCCESS_LAMBDA_UUID: '246fe3ee-f7d1-44a1-bbd9-bd658de6a779'
+        ACCOUNT_ID: ${{ secrets.ACCOUNT_ID }}
+        SUCCESS_LAMBDA_UUID: ${{ secrets.SUCCESS_LAMBDA_UUID }}
         CLIENT_ID: ${{ secrets.CLIENT_ID }}
         CLIENT_SECRET: ${{ secrets.CLIENT_SECRET }}
         OAUTH_API_KEY: ${{ secrets.OAUTH_API_KEY }}
@@ -29,5 +29,13 @@ jobs:
         OAUTH_TOKEN_KEY: ${{ secrets.OAUTH_TOKEN_KEY }}
         OAUTH_TOKEN_SECRET: ${{ secrets.OAUTH_TOKEN_SECRET }}
         OAUTH_SIGNATURE_METHOD: ${{ secrets.OAUTH_SIGNATURE_METHOD }}
-
-
+        ERROR_LAMBDA_UUID: ${{ secrets.ERROR_LAMBDA_UUID }}
+        USER_ID: ${{ secrets.USER_ID }}
+        ACCOUNT_ID_V1: ${{ secrets.ACCOUNT_ID_V1 }}
+        SUCCESS_LAMBDA_UUID_V1: ${{ secrets.SUCCESS_LAMBDA_UUID_V1 }}
+        CLIENT_ID_V1: ${{ secrets.CLIENT_ID_V1 }}
+        CLIENT_SECRET_V1: ${{ secrets.CLIENT_SECRET_V1 }}
+        ERROR_LAMBDA_UUID_V1: ${{ secrets.ERROR_LAMBDA_UUID_V1 }}
+        USER_ID_V1: ${{ secrets.USER_ID_V1 }}
+        USER_NAME: ${{ secrets.USER_NAME }}
+        PASSWORD: ${{ secrets.PASSWORD }}
