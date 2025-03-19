@@ -43,7 +43,8 @@ describe('Invoke by UUID', () => {
     expect(response.ok).toEqual(true);
   });
 
-  it('should invoke and get result via custom Oauth1 implementation', async () => {
+  // Skipped, Oauth1 will be deprecated
+  it.skip('should invoke and get result via custom Oauth1 implementation', async () => {
     // custom auth implementation start
     const getAuthorizationHeader: GetAuthorizationHeader = async ({
       url,
