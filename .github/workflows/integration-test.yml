@@ -31,7 +31,7 @@ jobs:
         OAUTH_SIGNATURE_METHOD: ${{ secrets.OAUTH_SIGNATURE_METHOD }}
         USER_ID: ${{ secrets.USER_ID }}
         ACCOUNT_ID_V1: ${{ secrets.ACCOUNT_ID_V1 }}
-        LAMBDA_UUID_V1: ${{ secrets.SUCCESS_LAMBDA_UUID_V1 }}
+        LAMBDA_UUID_V1: ${{ secrets.LAMBDA_UUID_V1 }}
         CLIENT_ID_V1: ${{ secrets.CLIENT_ID_V1 }}
         CLIENT_SECRET_V1: ${{ secrets.CLIENT_SECRET_V1 }}
         USER_ID_V1: ${{ secrets.USER_ID_V1 }}
