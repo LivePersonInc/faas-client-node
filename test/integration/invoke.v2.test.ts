@@ -6,10 +6,9 @@ import {
 } from '../../src/helper/metricCollector';
 import {Tooling} from '../../src/types/tooling';
 
-const successLambdaUUID =
-  process.env['SUCCESS_LAMBDA_UUID'] || 'does-not-exist';
+const functionUUID =
+  process.env['FUNCTION_UUID'] || 'does-not-exist';
 
-const errorLambdaUUID = process.env['ERROR_LAMBDA_UUID'] || 'does-not-exist';
 const accountId = process.env['ACCOUNT_ID'] || 'does-not-exist';
 const clientId = process.env['CLIENT_ID'] || 'does-not-exist';
 const clientSecret = process.env['CLIENT_SECRET'] || 'does-not-exist';
@@ -60,7 +59,7 @@ describe('V2 Invoke by UUID', () => {
     });
 
     const response = await client.invoke({
-      lambdaUuid: successLambdaUUID,
+      lambdaUuid: functionUUID,
       lpEventSource: 'integration-tests',
       body: {
         headers: [],
@@ -86,10 +85,10 @@ describe('V2 Invoke by UUID', () => {
 
     try {
       await client.invoke({
-        lambdaUuid: errorLambdaUUID,
+        lambdaUuid: functionUUID,
         externalSystem: 'integration-tests',
         body: {
-          headers: [],
+          headers: [{key:"run",value: "error"}],
           payload,
         },
       });
@@ -97,7 +96,7 @@ describe('V2 Invoke by UUID', () => {
     } catch (error: any) {
       expect(error?.name).toEqual('FaaSLambdaError');
       expect(error?.message).toStartWith(
-        `Failed to invoke lambda : ${errorLambdaUUID}`
+        `Failed to invoke lambda : ${functionUUID}`
       );
     }
   });

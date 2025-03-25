@@ -4,8 +4,8 @@ import {GetAuthorizationHeader} from '../../src/client/clientConfig';
 import {createHmac} from 'crypto';
 import OAuth from 'oauth-1.0a';
 
-const successLambdaUUID =
-  process.env['SUCCESS_LAMBDA_UUID_V1'] || 'does-not-exist';
+const lambdaUUID =
+  process.env['LAMBDA_UUID_V1'] || 'does-not-exist';
 const accountId = process.env['ACCOUNT_ID_V1'] || 'does-not-exist';
 const clientId = process.env['CLIENT_ID_V1'] || 'does-not-exist';
 const clientSecret = process.env['CLIENT_SECRET_V1'] || 'does-not-exist';
@@ -32,7 +32,7 @@ describe('Invoke by UUID', () => {
     };
 
     const response = await client.invoke({
-      lambdaUuid: successLambdaUUID,
+      lambdaUuid: lambdaUUID,
       externalSystem: 'integration-tests',
       body: {
         headers: [],
@@ -44,7 +44,7 @@ describe('Invoke by UUID', () => {
   });
 
   // Skipped, Oauth1 will be deprecated
- /* it.skip('should invoke and get result via custom Oauth1 implementation', async () => {
+  it.skip('should invoke and get result via custom Oauth1 implementation', async () => {
     // custom auth implementation start
     const getAuthorizationHeader: GetAuthorizationHeader = async ({
       url,
@@ -82,7 +82,7 @@ describe('Invoke by UUID', () => {
     };
 
     const response = await client.invoke({
-      lambdaUuid: successLambdaUUID,
+      lambdaUuid: lambdaUUID,
       externalSystem: 'integration-tests',
       body: {
         headers: [],
@@ -92,7 +92,7 @@ describe('Invoke by UUID', () => {
     });
 
     expect(response.ok).toEqual(true);
-  });*/
+  });
 
   it('should fail if lambda does not exist', async () => {
     const nonExistingLambda = 'c521cadf-d444-4519-ad11-1c1111114415';
