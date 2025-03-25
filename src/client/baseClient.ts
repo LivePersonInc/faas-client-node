@@ -113,12 +113,13 @@ export class BaseClient {
     }
   }
 
+  // TODO: Remove once V1 is shut down.
   /**
-   * Lists functions.
-   *
+   * Lists functions. compatible with V2 Functions and V1.
+   * Should be used during transition period to V2. Please be aware than some V2 functions properties may be different than V1
    * @param lambdaRequestData filtering data
-   * @returns A list of functions.
-   * @deprecated While still compatible with V2 Functions, using 'getFunctions' is recommended.
+   * @returns A list of functions (V2 or V1).
+   * @deprecated Will be replaced by 'getFunctions' in V2.
    */
   async getLambdas(lambdaRequestData: LambdaRequest): Promise<Response> {
     const baseMetrics = this.collectBaseMetricsFrom(lambdaRequestData);
@@ -129,7 +130,6 @@ export class BaseClient {
         this.config.uiCsdsServiceName
       ));
 
-      // TODO: Remove once V1 is shut down.
       const isV2 = this.isV2Domain(domain);
 
       const resp = isV2
@@ -168,6 +168,11 @@ export class BaseClient {
     }
   }
 
+  /**
+   * Lists functions, Only V2
+   * @param functionRequestData filtering data
+   * @returns  A list of functions.
+   */
   async getFunctions(functionRequestData: FunctionRequest): Promise<Response> {
     const baseMetrics = this.collectBaseMetricsFrom(functionRequestData);
     const watch = new stopwatch();
