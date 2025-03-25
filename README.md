@@ -36,7 +36,7 @@ We are excited to announce a **major update** to our client: **Functions V2** is
   - *DefaultConfig* `apiVersion`: not available in V2. Still used for V1.
   - *DefaultConfig* `getLambdasUri`: use `getFunctionsUri` instead.
   - *InvocationMetricData* `externalSystem`: use `lpEventSource` instead.
-  - Method *getLambdas()*: Now compatible with V1 and V2. Only for V2 you `getFunctions` is recommended.
+  - Method *getLambdas()*: Now compatible with V1 and V2. Only for V2 `getFunctions` is recommended.
   - Type *BaseQuery*: not used in V2. Still used for V1.
   - Type *GetLambdasQuery*: replaced by `GetFunctionsQuery` in V2.
   - Type *LambdaRequest*: replaced by `FunctionRequest`in V2.
