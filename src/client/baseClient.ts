@@ -554,12 +554,14 @@ export class BaseClient {
         isImplementedData.accountId,
         isImplementedData.eventId
       );
-      const query =
-        isImplementedData.userId !== undefined
-          ? {
-              userId: isImplementedData.userId,
-            }
-          : {};
+      const query: {userId?: string; skillId?: string} = {};
+      if (isImplementedData.userId !== undefined) {
+        query.userId = isImplementedData.userId;
+      }
+      if (isImplementedData.skillId !== undefined) {
+        query.skillId = isImplementedData.skillId;
+      }
+
       const url = await this.getUrl({
         path,
         domain,
