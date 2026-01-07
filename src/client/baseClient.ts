@@ -134,16 +134,16 @@ export class BaseClient {
 
       const resp = isV2
         ? await this.performGetFunctionsRequest(
-            {
-              state:
-                typeof lambdaRequestData.state === 'string'
-                  ? [lambdaRequestData.state]
-                  : lambdaRequestData.state,
-              skillId: lambdaRequestData.skillId,
-              eventId: lambdaRequestData.eventId,
-            },
-            domain
-          )
+          {
+            state:
+              typeof lambdaRequestData.state === 'string'
+                ? [lambdaRequestData.state]
+                : lambdaRequestData.state,
+            skillId: lambdaRequestData.skillId,
+            eventId: lambdaRequestData.eventId,
+          },
+          domain
+        )
         : await this.performGetLambdasRequest(lambdaRequestData, domain);
 
       const successMetric = this.enhanceBaseMetrics(baseMetrics, {
@@ -241,13 +241,13 @@ export class BaseClient {
 
         const implemented = isV2
           ? await this.performGetRequestForIsImplementedV2(
-              isImplementedRequestData,
-              domain
-            )
+            isImplementedRequestData,
+            domain
+          )
           : await this.performGetRequestForIsImplemented(
-              isImplementedRequestData,
-              domain
-            );
+            isImplementedRequestData,
+            domain
+          );
 
         const successMetric = this.enhanceBaseMetrics(baseMetrics, {
           requestDurationInMillis: watch.read(),
@@ -286,10 +286,10 @@ export class BaseClient {
     const path = this.isEventInvocation(data)
       ? format(this.config.invokeEventUri, this.config.accountId, data.eventId)
       : format(
-          this.config.invokeUuidUri,
-          this.config.accountId,
-          data.lambdaUuid
-        );
+        this.config.invokeUuidUri,
+        this.config.accountId,
+        data.lambdaUuid
+      );
 
     const query: BaseQuery = {
       v: invokeData.apiVersion,
@@ -320,8 +320,8 @@ export class BaseClient {
         },
         `Failed to invoke lambda ${
           this.isEventInvocation(invokeData)
-            ? `for event: "${invokeData.eventId}"`
-            : `: ${invokeData.lambdaUuid}"`
+          ? `for event: "${invokeData.eventId}"`
+          : `: ${invokeData.lambdaUuid}"`
         }`
       );
     }
@@ -342,10 +342,10 @@ export class BaseClient {
     const path = this.isEventInvocation(data)
       ? format(this.config.invokeEventUri, this.config.accountId, data.eventId)
       : format(
-          this.config.invokeUuidUri,
-          this.config.accountId,
-          data.lambdaUuid
-        );
+        this.config.invokeUuidUri,
+        this.config.accountId,
+        data.lambdaUuid
+      );
 
     const query = data.skillId !== undefined ? {skillId: data.skillId} : {};
 
@@ -358,6 +358,18 @@ export class BaseClient {
       });
 
       const resp = await this.doFetch({url, domain, ...invokeData});
+      // TODO: refactor and remote duplicate code
+      // Transform error reference to V1 compatibility
+      if (data?.v1CompError && [400, 401, 403, 404, 405, 408, 429, 500, 502, 504, 901].includes(resp.status) && isV2ErrorBody(resp.body)) {
+        const {code, message} = resp.body;
+
+        const newBody = {
+          errorCode: this.mapV2ErrorCodeToV1(code),
+          errorMsg: message,
+        };
+
+        resp.body = newBody;
+      }
 
       return resp;
     } catch (error) {
@@ -390,8 +402,8 @@ export class BaseClient {
         },
         `Failed to invoke lambda ${
           this.isEventInvocation(invokeData)
-            ? `for event: "${invokeData.eventId}"`
-            : `: ${invokeData.lambdaUuid}"`
+          ? `for event: "${invokeData.eventId}"`
+          : `: ${invokeData.lambdaUuid}"`
         }`
       );
     }
@@ -654,8 +666,8 @@ export class BaseClient {
             response.status
           } - ${response.statusText}.${
             response.body
-              ? ` Response body: ${JSON.stringify(response.body)}`
-              : ''
+            ? ` Response body: ${JSON.stringify(response.body)}`
+            : ''
           }`
         );
       }
@@ -845,14 +857,14 @@ export class BaseClient {
     };
     return this.isEventInvocation(data)
       ? {
-          ...baseMetrics,
-          event: data.eventId,
-          skillId: data?.skillId,
-        }
+        ...baseMetrics,
+        event: data.eventId,
+        skillId: data?.skillId,
+      }
       : {
-          ...baseMetrics,
-          UUID: data.lambdaUuid,
-        };
+        ...baseMetrics,
+        UUID: data.lambdaUuid,
+      };
   }
 
   private enhanceBaseMetrics(
