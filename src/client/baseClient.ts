@@ -359,7 +359,7 @@ export class BaseClient {
       const resp = await this.doFetch({url, domain, ...invokeData});
 
       return data?.v1CompError
-        ? this.transfornReponseErrorForV1Compatibility(resp)
+        ? this.transformReponseErrorForV1Compatibility(resp)
         : resp;
     } catch (error) {
       const name = this.isCustomLambdaErrorV2(error)
@@ -858,24 +858,16 @@ export class BaseClient {
     return domain.includes('fninvocations') || domain.includes('functions');
   }
 
-  private transfornReponseErrorForV1Compatibility(
+  private transformReponseErrorForV1Compatibility(
     response: Response
   ): Response {
-    if (
-      [400, 401, 403, 404, 405, 408, 429, 500, 502, 504, 901].includes(
-        response.status
-      ) &&
-      isV2ErrorBody(response.body)
-    ) {
-      const {code, message} = response.body;
+    if (response.ok || !isV2ErrorBody(response.body)) return response;
 
-      const newBody = {
-        errorCode: this.mapV2ErrorCodeToV1(code),
-        errorMsg: message,
-      };
-
-      response.body = newBody;
-    }
+    const {code, message} = response.body;
+    response.body = {
+      errorCode: this.mapV2ErrorCodeToV1(code),
+      errorMsg: message,
+    };
 
     return response;
   }
