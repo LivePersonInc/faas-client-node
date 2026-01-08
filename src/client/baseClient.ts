@@ -16,7 +16,6 @@ import {
   hasResponseBody,
   isV1ErrorBody,
   isV2ErrorBody,
-  JseCause,
   Response,
 } from '../types/response';
 import {
