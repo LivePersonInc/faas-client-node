@@ -338,7 +338,6 @@ export class BaseClient {
           data.lpEventSource || data.externalSystem || 'Unknown',
       },
     };
-
     const path = this.isEventInvocation(data)
       ? format(this.config.invokeEventUri, this.config.accountId, data.eventId)
       : format(
@@ -359,30 +358,21 @@ export class BaseClient {
 
       const resp = await this.doFetch({url, domain, ...invokeData});
 
-      return resp;
+      return data?.v1CompError
+        ? this.transformReponseErrorForV1Compatibility(resp)
+        : resp;
     } catch (error) {
       const name = this.isCustomLambdaErrorV2(error)
         ? 'FaaSLambdaError'
         : 'FaaSInvokeError';
 
-      // Transform error reference to V1 compatibility
-      if (data?.v1CompError && hasResponseBody(error)) {
-        const body = error.jse_cause.jse_info.response.body;
+      const finalError = data?.v1CompError
+        ? this.transformErrorForV1Compatibility(error)
+        : error;
 
-        if (isV2ErrorBody(body)) {
-          const {code, message} = body;
-
-          const newBody = {
-            errorCode: this.mapV2ErrorCodeToV1(code),
-            errorMsg: message,
-          };
-
-          error.jse_cause.jse_info.response.body = newBody;
-        }
-      }
       throw new VError(
         {
-          cause: error as Error,
+          cause: finalError as Error,
           info: {
             ...this.getDebugConfig(),
           },
@@ -396,6 +386,7 @@ export class BaseClient {
       );
     }
   }
+
   private async performGetLambdasRequest(
     data: LambdaRequest,
     domain: string
@@ -865,6 +856,40 @@ export class BaseClient {
 
   private isV2Domain(domain: string): boolean {
     return domain.includes('fninvocations') || domain.includes('functions');
+  }
+
+  private transformReponseErrorForV1Compatibility(
+    response: Response
+  ): Response {
+    if (response.ok || !isV2ErrorBody(response.body)) return response;
+
+    const {code, message} = response.body;
+    response.body = {
+      errorCode: this.mapV2ErrorCodeToV1(code),
+      errorMsg: message,
+    };
+
+    return response;
+  }
+
+  private transformErrorForV1Compatibility(error: unknown): unknown {
+    if (hasResponseBody(error)) {
+      const body = error.jse_cause.jse_info.response.body;
+
+      if (isV2ErrorBody(body)) {
+        const {code, message} = body;
+
+        const newBody = {
+          errorCode: this.mapV2ErrorCodeToV1(code),
+          errorMsg: message,
+        };
+
+        error.jse_cause.jse_info.response.body = newBody;
+
+        return error;
+      }
+    }
+    return error;
   }
 
   private mapV2ErrorCodeToV1(v2ErrorCode: string): string {

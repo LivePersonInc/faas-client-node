@@ -6,8 +6,7 @@ import {
 } from '../../src/helper/metricCollector';
 import {Tooling} from '../../src/types/tooling';
 
-const functionUUID =
-  process.env['FUNCTION_UUID'] || 'does-not-exist';
+const functionUUID = process.env['FUNCTION_UUID'] || 'does-not-exist';
 
 const accountId = process.env['ACCOUNT_ID'] || 'does-not-exist';
 const clientId = process.env['CLIENT_ID'] || 'does-not-exist';
@@ -72,7 +71,7 @@ describe('V2 Invoke by UUID', () => {
     expect(isImplemented).toEqual(true);
     expect(onIsImplementedCalled).toEqual(true);
   });
-  
+
   it('should fail if lambda returns 901 error', async () => {
     const client = new Client({
       accountId,
@@ -88,7 +87,7 @@ describe('V2 Invoke by UUID', () => {
         lambdaUuid: functionUUID,
         externalSystem: 'integration-tests',
         body: {
-          headers: [{key:"run",value: "error"}],
+          headers: [{key: 'run', value: 'error'}],
           payload,
         },
       });
@@ -99,6 +98,94 @@ describe('V2 Invoke by UUID', () => {
         `Failed to invoke lambda : ${functionUUID}`
       );
     }
+  });
+
+  it('should return V1 compatibility error', async () => {
+    const client = new Client({
+      accountId,
+      authStrategy: appJwtCredentials,
+      failOnErrorStatusCode: true,
+    });
+    const payload = {
+      foo: 'bar',
+    };
+
+    try {
+      await client.invoke({
+        lambdaUuid: functionUUID,
+        externalSystem: 'integration-tests',
+        v1CompError: true,
+        body: {
+          headers: [{key: 'run', value: 'error'}],
+          payload,
+        },
+      });
+      fail('should fail');
+    } catch (error: any) {
+      expect(error?.name).toEqual('FaaSLambdaError');
+      expect(error?.message).toStartWith(
+        `Failed to invoke lambda : ${functionUUID}`
+      );
+      expect(
+        (error as any)?.jse_cause?.jse_cause?.jse_info?.response?.body
+      ).toMatchObject({
+        errorCode: 'com.liveperson.faas.handler.custom-failure',
+        errorMsg:
+          'Function Invocation failed due to an issue caused by customer coding',
+      });
+    }
+  });
+
+  it('should return V1 compatibility Response error', async () => {
+    const client = new Client({
+      accountId,
+      authStrategy: appJwtCredentials,
+      failOnErrorStatusCode: false,
+    });
+    const payload = {
+      foo: 'bar',
+    };
+
+    const resp = await client.invoke({
+      lambdaUuid: functionUUID,
+      externalSystem: 'integration-tests',
+      v1CompError: true,
+      body: {
+        headers: [{key: 'run', value: 'error'}],
+        payload,
+      },
+    });
+
+    expect(resp?.body).toMatchObject({
+      errorCode: 'com.liveperson.faas.handler.custom-failure',
+      errorMsg:
+        'Function Invocation failed due to an issue caused by customer coding',
+    });
+  });
+
+  it('should not overwrite response body for successful invocations when v1CompError flag is set', async () => {
+    const client = new Client({
+      accountId,
+      authStrategy: appJwtCredentials,
+      failOnErrorStatusCode: false,
+    });
+    const payload = {
+      foo: 'bar',
+    };
+
+    const resp = await client.invoke({
+      lambdaUuid: functionUUID,
+      lpEventSource: 'integration-tests',
+      v1CompError: true,
+
+      body: {
+        headers: [],
+        payload,
+      },
+    });
+
+    expect(resp.ok).toEqual(true);
+    expect(resp?.body).toEqual("success");
   });
 
   it('should fail if lambda does not exist', async () => {
