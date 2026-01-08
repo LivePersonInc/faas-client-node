@@ -338,7 +338,6 @@ export class BaseClient {
           data.lpEventSource || data.externalSystem || 'Unknown',
       },
     };
-    
     const path = this.isEventInvocation(data)
       ? format(this.config.invokeEventUri, this.config.accountId, data.eventId)
       : format(
