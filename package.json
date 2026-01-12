@@ -6,6 +6,10 @@
     "name": "LivePersonInc",
     "email": "faas-lp@liveperson.com"
   },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/LivePersonInc/faas-client-node.git"
+  },
   "license": "MIT",
   "scripts": {
     "check": "gts check",
