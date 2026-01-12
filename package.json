@@ -1,10 +1,14 @@
 {
   "name": "liveperson-functions-client",
-  "version": "2.0.4",
+  "version": "2.0.5",
   "description": "JavaScript client for LivePerson Functions.",
   "author": {
     "name": "LivePersonInc",
     "email": "faas-lp@liveperson.com"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/LivePersonInc/faas-client-node.git"
   },
   "license": "MIT",
   "scripts": {

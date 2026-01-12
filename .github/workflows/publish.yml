@@ -17,19 +17,22 @@ on:
             - 'minor'
             - 'major'
           default: 'patch'
+permissions:
+  id-token: write  # Required for OIDC
+  contents: read
 
 jobs:
   publish-on-npm:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Setup environment
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v4
         with:
-          node-version: 16
-          registry-url: https://registry.npmjs.org/
+          node-version: '24'
+          registry-url: 'https://registry.npmjs.org'
 
       - name: Versionate
         run: |
@@ -40,12 +43,9 @@ jobs:
       - name: Build
         run: npm ci
         
-
-      - name: Publish npm
-        id: publish
-        uses: JS-DevTools/npm-publish@v1
-        with:
-          token: ${{ secrets.NPM_PUBLISH }}
+      - name: Publish to NPM
+        # This command uses the GitHub OIDC token automatically
+        run: npm publish
 
       - name: Create PR
         uses: peter-evans/create-pull-request@v4.2.3
