@@ -31,14 +31,16 @@ jobs:
       - name: Setup environment
         uses: actions/setup-node@v4
         with:
-          node-version: '24'
+          node-version: 'lts/*'
           registry-url: 'https://registry.npmjs.org'
 
       - name: Versionate
+        id: versionate
         run: |
           git config --local user.email "action@github.com"
           git config --local user.name "GitHub Action"
-          npm version ${{ github.event.inputs.version-increment }}
+          NEW_VERSION=$(npm version ${{ github.event.inputs.version-increment }})
+          echo "version=${NEW_VERSION#v}" >> "$GITHUB_OUTPUT"
 
       - name: Build
         run: npm ci
@@ -50,8 +52,8 @@ jobs:
       - name: Create PR
         uses: peter-evans/create-pull-request@v4.2.3
         with:
-          commit-message: Updated repository to ${{ steps.publish.outputs.version }}
-          title: Bump version to ${{ steps.publish.outputs.version }}
+          commit-message: Updated repository to ${{ steps.versionate.outputs.version }}
+          title: Bump version to ${{ steps.versionate.outputs.version }}
           body: New release build
-          branch: release/${{ steps.publish.outputs.version }}
+          branch: release/${{ steps.versionate.outputs.version }}
           base: master
