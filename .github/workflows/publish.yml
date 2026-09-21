@@ -19,7 +19,8 @@ on:
           default: 'patch'
 permissions:
   id-token: write  # Required for OIDC
-  contents: read
+  contents: write
+  pull-requests: write
 
 jobs:
   publish-on-npm:
