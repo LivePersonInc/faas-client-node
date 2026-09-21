@@ -280,7 +280,7 @@ export class BaseClient {
       method: HTTP_METHOD.POST,
       ...this.config,
       ...data,
-      requestId: this.tooling.generateId(),
+      requestId: data.requestId ?? this.tooling.generateId(),
     };
 
     const path = this.isEventInvocation(data)
@@ -332,7 +332,7 @@ export class BaseClient {
       method: HTTP_METHOD.POST,
       ...this.config,
       ...data,
-      requestId: this.tooling.generateId(),
+      requestId: data.requestId ?? this.tooling.generateId(),
       headers: {
         'LP-EventSource':
           data.lpEventSource || data.externalSystem || 'Unknown',
