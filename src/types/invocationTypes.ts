@@ -19,6 +19,11 @@ export interface BaseInvocation extends Partial<BaseConfig> {
 
 export interface BasePostInvocation extends BaseInvocation {
   readonly body: InvocationDomain;
+  /**
+   * Custom X-Request-ID header to send with the invocation.
+   * If omitted, one is generated automatically.
+   */
+  readonly requestId?: string;
 }
 
 export interface EventRequest {

@@ -120,6 +120,36 @@ describe('Client V1 flow', () => {
       expect(scope.isDone()).toBe(true);
     });
 
+    test('invoke method with custom requestId', async () => {
+      const customRequestId = 'my-custom-request-id';
+      const result1 = [123];
+      const scope = nock('https://test123.com', {
+        reqheaders: {
+          'X-Request-ID': customRequestId,
+        },
+      })
+        .post(
+          '/api/account/123456/events/fooBar/invoke?v=1&skillId=&externalSystem=testSystem'
+        )
+        .once()
+        .reply(200, result1)
+        .persist();
+
+      const client = new Client(testConfig);
+      const response = await client.invoke({
+        eventId: 'fooBar',
+        externalSystem: 'testSystem',
+        requestId: customRequestId,
+        body: {
+          payload: {},
+        },
+      });
+
+      expect(response).toBeNonEmptyObject();
+      expect(response.body).toEqual(result1);
+      expect(scope.isDone()).toBe(true);
+    });
+
     test('getLambdas method', async () => {
       const lambda = [{uuid: 'a-b-c-d'}];
       const scope = nock('https://test123.com')

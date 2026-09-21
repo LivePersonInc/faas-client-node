@@ -116,6 +116,34 @@ describe('Client V2 flow', () => {
       expect(scope.isDone()).toBe(true);
     });
 
+    test('invoke method with custom requestId', async () => {
+      const customRequestId = 'my-custom-request-id';
+      const result1 = [123];
+      const scope = nock(`https://${TEST_V2_HOST}`, {
+        reqheaders: {
+          'X-Request-ID': customRequestId,
+        },
+      })
+        .post('/api/account/123456/events/fooBar/invoke')
+        .once()
+        .reply(202, result1)
+        .persist();
+
+      const client = new Client(testConfig);
+      const response = await client.invoke({
+        eventId: 'fooBar',
+        externalSystem: 'testSystem',
+        requestId: customRequestId,
+        body: {
+          payload: {},
+        },
+      });
+
+      expect(response).toBeNonEmptyObject();
+      expect(response.body).toEqual(result1);
+      expect(scope.isDone()).toBe(true);
+    });
+
     test('invocation metrics', async () => {
       const lpEventSource = 'testSystem';
       let onInvokeCalled = false;
